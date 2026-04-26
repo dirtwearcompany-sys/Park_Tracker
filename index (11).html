@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPS Park Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #1a3a2a;
+    --moss: #2d5a3d;
+    --sage: #4a7c59;
+    --fern: #6b9e78;
+    --mist: #c8ddc2;
+    --cream: #f5f0e8;
+    --bark: #8b6f47;
+    --stone: #5a5a5a;
+    --sand: #e8dfc8;
+    --sky: #2c6e8a;
+    --gold: #c9a227;
+    --visited-bg: #e8f5e9;
+    --visited-border: #4a7c59;
+    --card-shadow: 0 2px 8px rgba(26,58,42,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--forest);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--forest);
+    color: var(--cream);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--cream);
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .logo-text h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .logo-text span {
+    font-size: 11px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+    margin-left: auto;
+    align-items: center;
+  }
+
+  .stat-pill {
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .stat-pill .num {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--gold);
+    display: block;
+    line-height: 1;
+  }
+
+  .stat-pill .lbl {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.7;
+    display: block;
+  }
+
+  .progress-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+
+  .progress-bar-wrap .lbl {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.7;
+  }
+
+  .progress-track {
+    width: 140px;
+    height: 6px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-pct {
+    font-size: 11px;
+    opacity: 0.8;
+  }
+
+  /* TOOLBAR */
+  .toolbar {
+    background: var(--moss);
+    padding: 10px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* this toolbar is inside header so no max-width issue */
+  header .toolbar { max-width: none; }
+
+  .toolbar input[type="text"] {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    width: 260px;
+    outline: none;
+    transition: background 0.2s;
+  }
+
+  .toolbar input[type="text"]::placeholder { color: rgba(255,255,255,0.5); }
+  .toolbar input[type="text"]:focus { background: rgba(255,255,255,0.2); }
+
+  .toolbar select {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .toolbar select option { background: var(--moss); color: white; }
+
+  .btn {
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-gold { background: var(--gold); color: var(--forest); }
+  .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; }
+  .btn-outline:hover { background: rgba(255,255,255,0.1); }
+  .btn-danger { background: #c0392b; color: white; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  .filter-tabs {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .tab-btn {
+    padding: 6px 14px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .tab-btn.active, .tab-btn:hover {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border-color: rgba(255,255,255,0.4);
+  }
+
+  .tab-btn.active { background: var(--gold); color: var(--forest); border-color: var(--gold); }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: calc(100vh - 110px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: white;
+    border-right: 1px solid rgba(26,58,42,0.1);
+    padding: 16px 0;
+    position: sticky;
+    top: 110px;
+    height: calc(100vh - 110px);
+    overflow-y: auto;
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--stone);
+    padding: 0 16px 8px;
+    font-weight: 600;
+  }
+
+  .state-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-left: 3px solid transparent;
+    font-size: 13.5px;
+  }
+
+  .state-item:hover { background: var(--cream); }
+  .state-item.active { background: #e8f5e9; border-left-color: var(--sage); color: var(--forest); font-weight: 500; }
+
+  .state-badge {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .badge-total { background: var(--sand); color: var(--bark); }
+  .badge-visited { background: var(--mist); color: var(--moss); }
+
+  /* MAIN */
+  .main { padding: 24px; }
+
+  .view-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .view-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    color: var(--forest);
+  }
+
+  .view-subtitle {
+    font-size: 13px;
+    color: var(--stone);
+    margin-top: 2px;
+  }
+
+  .parks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  /* PARK CARD */
+  .park-card {
+    background: white;
+    border-radius: 10px;
+    border: 1.5px solid rgba(26,58,42,0.08);
+    box-shadow: var(--card-shadow);
+    transition: all 0.2s;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .park-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(26,58,42,0.18); }
+  .park-card.visited { border-color: var(--visited-border); background: var(--visited-bg); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 14px 10px;
+    gap: 12px;
+  }
+
+  .card-type-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    background: var(--sand);
+  }
+
+  .card-type-icon.np { background: #e8f5e9; }
+  .card-type-icon.nm { background: #e3f2fd; }
+  .card-type-icon.nh { background: #fff8e1; }
+  .card-type-icon.nr { background: #fce4ec; }
+  .card-type-icon.ns { background: #ede7f6; }
+  .card-type-icon.other { background: var(--sand); }
+
+  .card-info { flex: 1; min-width: 0; }
+
+  .card-name {
+    font-weight: 600;
+    font-size: 14.5px;
+    line-height: 1.3;
+    color: var(--forest);
+    margin-bottom: 3px;
+  }
+
+  .card-meta {
+    font-size: 11.5px;
+    color: var(--stone);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .type-tag {
+    background: var(--sand);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--bark);
+  }
+
+  .visited-check {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--fern);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    background: transparent;
+    font-size: 13px;
+    color: transparent;
+  }
+
+  .visited-check:hover { background: var(--mist); color: var(--sage); }
+  .park-card.visited .visited-check { background: var(--sage); border-color: var(--sage); color: white; }
+
+  .card-body {
+    padding: 0 14px 12px;
+    font-size: 12.5px;
+    color: var(--stone);
+    line-height: 1.5;
+    flex: 1;
+  }
+
+  .card-footer {
+    padding: 10px 14px;
+    border-top: 1px solid rgba(26,58,42,0.08);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .visited-date {
+    font-size: 11px;
+    color: var(--sage);
+    font-weight: 500;
+    margin-left: auto;
+  }
+
+  .state-chip {
+    background: var(--sand);
+    color: var(--bark);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: white;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 540px;
+    max-height: 85vh;
+    overflow-y: auto;
+    transform: translateY(20px);
+    transition: transform 0.2s;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(26,58,42,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--forest);
+  }
+
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--cream);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    color: var(--stone);
+  }
+
+  .modal-close:hover { background: var(--sand); }
+
+  .modal-body { padding: 20px 24px; }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--stone);
+    margin-bottom: 6px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(26,58,42,0.15);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--forest);
+    background: white;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { border-color: var(--sage); }
+
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(26,58,42,0.1);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--stone);
+  }
+
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state h3 { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--forest); margin-bottom: 8px; }
+  .empty-state p { font-size: 14px; margin-bottom: 20px; }
+
+  /* MAP VIEW */
+  #map-view {
+    display: none;
+    padding: 20px;
+    max-width: 1000px;
+  }
+
+  .us-map-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 20px;
+  }
+
+  .us-map-container h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--forest);
+  }
+
+  .map-legend {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--stone);
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+  .states-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .state-map-card {
+    background: white;
+    border: 1.5px solid rgba(26,58,42,0.1);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .state-map-card:hover { border-color: var(--sage); background: var(--cream); }
+  .state-map-card.has-visited { border-color: var(--fern); background: var(--visited-bg); }
+  .state-map-card.all-visited { border-color: var(--sage); background: #d4edda; }
+
+  .state-map-name { font-weight: 600; font-size: 13px; color: var(--forest); }
+  .state-map-count { font-size: 11px; color: var(--stone); margin-top: 2px; }
+  .state-map-bar { height: 4px; background: var(--sand); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .state-map-fill { height: 100%; background: var(--sage); border-radius: 2px; transition: width 0.3s; }
+
+  /* DOWNLOAD SECTION */
+  .download-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 20px;
+  }
+
+  .download-section h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    margin-bottom: 6px;
+    color: var(--forest);
+  }
+
+  .download-section p { font-size: 13px; color: var(--stone); margin-bottom: 16px; }
+
+  .download-options { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .dl-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border: 1.5px solid rgba(26,58,42,0.12);
+    border-radius: 8px;
+    cursor: pointer;
+    background: white;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--forest);
+  }
+
+  .dl-option:hover { background: var(--cream); border-color: var(--sage); }
+  .dl-option .icon { font-size: 22px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--forest);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 999;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all 0.3s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--moss); }
+  .toast.error { background: #c0392b; }
+
+  /* NOTE INPUT */
+  .note-field {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    color: var(--stone);
+    font-family: 'DM Sans', sans-serif;
+    resize: none;
+    padding: 0;
+    outline: none;
+    cursor: text;
+  }
+
+  /* Scrollbar */
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--mist); border-radius: 2px; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .header-stats { display: none; }
+    .parks-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🏔</div>
+      <div class="logo-text">
+        <h1>Park Tracker</h1>
+        <span>National Park Service</span>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="num" id="stat-visited">0</span>
+        <span class="lbl">Visited</span>
+      </div>
+      <div class="stat-pill">
+        <span class="num" id="stat-total">0</span>
+        <span class="lbl">Total</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <span class="lbl">Progress</span>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <span class="progress-pct" id="progress-pct">0%</span>
+      </div>
+    </div>
+  </div>
+  <div style="background:var(--moss); width:100%;">
+    <div class="toolbar" style="max-width:1400px; margin:0 auto;">
+      <input type="text" id="search-input" placeholder="🔍  Search parks...">
+      <select id="type-filter">
+        <option value="">All Types</option>
+        <option value="National Park">National Park</option>
+        <option value="National Monument">National Monument</option>
+        <option value="National Historic Site">National Historic Site</option>
+        <option value="National Recreation Area">National Recreation Area</option>
+        <option value="National Seashore">National Seashore</option>
+        <option value="National Forest">National Forest</option>
+        <option value="National Battlefield">National Battlefield</option>
+        <option value="National Memorial">National Memorial</option>
+        <option value="National Parkway">National Parkway</option>
+        <option value="Other">Other</option>
+      </select>
+      <div class="filter-tabs">
+        <button class="tab-btn active" onclick="setView('all')">All Parks</button>
+        <button class="tab-btn" onclick="setView('visited')">Visited</button>
+        <button class="tab-btn" onclick="setView('unvisited')">Bucket List</button>
+        <button class="tab-btn" onclick="setView('map')">🗺 Map View</button>
+      </div>
+      <button class="btn btn-gold" onclick="openAddModal()">＋ Add Park</button>
+      <button class="btn btn-outline" onclick="openDownload()">⬇ Export</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-title">Browse by State</div>
+    <div id="state-list"></div>
+  </aside>
+
+  <main class="main">
+    <div id="list-view">
+      <div class="view-header">
+        <div>
+          <h2 class="view-title" id="view-title">All National Park Service Sites</h2>
+          <div class="view-subtitle" id="view-subtitle">Loading parks...</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <select style="padding:7px 12px;border:1.5px solid rgba(26,58,42,0.15);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--forest);background:white;cursor:pointer;" onchange="setSortBy(this.value)">
+            <option value="name">Sort: A–Z</option>
+            <option value="state">Sort: by State</option>
+            <option value="type">Sort: by Type</option>
+            <option value="visited">Sort: Visited First</option>
+          </select>
+        </div>
+      </div>
+      <div class="parks-grid" id="parks-grid"></div>
+      <div id="empty-state" class="empty-state" style="display:none">
+        <div class="icon">🌲</div>
+        <h3>No parks found</h3>
+        <p>Try adjusting your search or filters.</p>
+        <button class="btn btn-gold" onclick="openAddModal()">＋ Add a Park</button>
+      </div>
+    </div>
+
+    <div id="map-view">
+      <div class="view-header">
+        <div>
+          <h2 class="view-title">Map View</h2>
+          <div class="view-subtitle">Click a state to filter parks</div>
+        </div>
+      </div>
+      <div class="us-map-container">
+        <h3>States & Territories</h3>
+        <div class="states-grid" id="map-states-grid"></div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#c8ddc2;border:1px solid #6b9e78"></div> Has visited parks</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#d4edda;border:1px solid #4a7c59"></div> All visited</div>
+          <div class="legend-item"><div class="legend-dot" style="background:white;border:1px solid #ddd"></div> Not started</div>
+        </div>
+      </div>
+      <div class="download-section" id="dl-section" style="display:none">
+        <h3>Export & Download</h3>
+        <p>Download your park data in various formats for offline use.</p>
+        <div class="download-options" id="dl-options"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ADD PARK MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title-text">Add New Park</h3>
+      <button class="modal-close" onclick="closeAddModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-park-id">
+      <div class="form-group">
+        <label>Park Name *</label>
+        <input type="text" id="park-name-input" placeholder="e.g. Grand Canyon National Park">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>State / Territory *</label>
+          <select id="park-state-input">
+            <option value="">Select state...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Type *</label>
+          <select id="park-type-input">
+            <option value="National Park">National Park</option>
+            <option value="National Monument">National Monument</option>
+            <option value="National Historic Site">National Historic Site</option>
+            <option value="National Recreation Area">National Recreation Area</option>
+            <option value="National Seashore">National Seashore</option>
+            <option value="National Forest">National Forest</option>
+            <option value="National Battlefield">National Battlefield</option>
+            <option value="National Memorial">National Memorial</option>
+            <option value="National Parkway">National Parkway</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description (optional)</label>
+        <textarea id="park-desc-input" placeholder="Brief description of this park site..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Website (optional)</label>
+          <input type="text" id="park-url-input" placeholder="https://www.nps.gov/...">
+        </div>
+        <div class="form-group">
+          <label>NPS Code (optional)</label>
+          <input type="text" id="park-code-input" placeholder="e.g. grca" maxlength="6">
+        </div>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--cream);border-radius:8px;">
+        <input type="checkbox" id="park-visited-check" style="width:auto;width:18px;height:18px;accent-color:var(--sage);cursor:pointer;">
+        <label for="park-visited-check" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;cursor:pointer;margin:0;">Mark as visited</label>
+      </div>
+      <div id="visit-date-row" class="form-row" style="display:none">
+        <div class="form-group">
+          <label>Date Visited</label>
+          <input type="date" id="park-date-input">
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" id="park-notes-input" placeholder="Your experience...">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeAddModal()" style="border-color:rgba(26,58,42,0.2);color:var(--stone);">Cancel</button>
+      <button class="btn btn-gold" onclick="savePark()">Save Park</button>
+    </div>
+  </div>
+</div>
+
+<!-- VISIT DATE MODAL -->
+<div class="modal-overlay" id="visit-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3 class="modal-title">Mark as Visited</h3>
+      <button class="modal-close" onclick="closeVisitModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--stone);margin-bottom:16px;" id="visit-park-name"></p>
+      <div class="form-group">
+        <label>Date Visited</label>
+        <input type="date" id="visit-date-input">
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="visit-notes-input" placeholder="What did you love? Memorable moments..." style="min-height:70px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeVisitModal()" style="border-color:rgba(26,58,42,0.2);color:var(--stone);">Cancel</button>
+      <button class="btn btn-gold" onclick="confirmVisit()">Mark Visited ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== DATA ==========
+const ALL_STATES = [
+  "Alabama","Alaska","American Samoa","Arizona","Arkansas","California","Colorado",
+  "Connecticut","Delaware","District of Columbia","Florida","Georgia","Guam","Hawaii",
+  "Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine",
+  "Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana",
+  "Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York",
+  "North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania",
+  "Puerto Rico","Rhode Island","South Carolina","South Dakota","Tennessee","Texas",
+  "Utah","Vermont","Virgin Islands","Virginia","Washington","West Virginia",
+  "Wisconsin","Wyoming"
+];
+
+const TYPE_ICONS = {
+  "National Park": "🏔",
+  "National Monument": "🗿",
+  "National Historic Site": "🏛",
+  "National Recreation Area": "⛵",
+  "National Seashore": "🏖",
+  "National Forest": "🌲",
+  "National Battlefield": "⚔",
+  "National Memorial": "🕊",
+  "National Parkway": "🛣",
+  "Other": "📍"
+};
+
+const TYPE_CLASS = {
+  "National Park": "np",
+  "National Monument": "nm",
+  "National Historic Site": "nh",
+  "National Recreation Area": "nr",
+  "National Seashore": "ns",
+  "National Forest": "nf",
+  "National Battlefield": "nb",
+  "National Memorial": "nm2",
+  "National Parkway": "nk",
+  "Other": "other"
+};
+
+// Seed NPS parks data (full 400+)
+const SEED_PARKS = [
+  {name:"Acadia National Park",state:"Maine",type:"National Park",desc:"Rocky coastline, mountains, and forests of the Maine coast.",url:"https://www.nps.gov/acad",code:"acad"},
+  {name:"Adams National Historical Park",state:"Massachusetts",type:"National Historic Site",desc:"Home of two U.S. presidents and four generations of the Adams family.",url:"https://www.nps.gov/adam",code:"adam"},
+  {name:"African Burial Ground National Monument",state:"New York",type:"National Monument",desc:"Only known preserved burial ground for free and enslaved Africans in colonial New York.",url:"https://www.nps.gov/afbg",code:"afbg"},
+  {name:"Agate Fossil Beds National Monument",state:"Nebraska",type:"National Monument",desc:"Ancient fossils of Miocene mammals.",url:"https://www.nps.gov/agfo",code:"agfo"},
+  {name:"Alagnak Wild River",state:"Alaska",type:"Other",desc:"A wild and scenic river through the Alaskan wilderness.",url:"https://www.nps.gov/alag",code:"alag"},
+  {name:"Alibates Flint Quarries National Monument",state:"Texas",type:"National Monument",desc:"Ancient quarries where people collected flint for over 13,000 years.",url:"https://www.nps.gov/alfl",code:"alfl"},
+  {name:"Allegheny Portage Railroad National Historic Site",state:"Pennsylvania",type:"National Historic Site",desc:"First railroad to cross the Allegheny Mountains.",url:"https://www.nps.gov/alpo",code:"alpo"},
+  {name:"American Memorial Park",state:"American Samoa",type:"Other",desc:"Honors those who sacrificed their lives in the Marianas Campaign.",url:"https://www.nps.gov/amme",code:"amme"},
+  {name:"Amistad National Recreation Area",state:"Texas",type:"National Recreation Area",desc:"International recreation area with the Amistad Reservoir.",url:"https://www.nps.gov/amis",code:"amis"},
+  {name:"Andersonville National Historic Site",state:"Georgia",type:"National Historic Site",desc:"Site of the Civil War prison camp and memorial to POWs.",url:"https://www.nps.gov/ande",code:"ande"},
+  {name:"Andrew Johnson National Historic Site",state:"Tennessee",type:"National Historic Site",desc:"Home, tailor shop, and burial place of the 17th president.",url:"https://www.nps.gov/anjo",code:"anjo"},
+  {name:"Antietam National Battlefield",state:"Maryland",type:"National Battlefield",desc:"Site of the bloodiest single-day battle of the Civil War.",url:"https://www.nps.gov/anti",code:"anti"},
+  {name:"Apostle Islands National Lakeshore",state:"Wisconsin",type:"National Seashore",desc:"Scattered islands along Lake Superior's Bayfield Peninsula.",url:"https://www.nps.gov/apis",code:"apis"},
+  {name:"Appalachian National Scenic Trail",state:"Maine",type:"Other",desc:"2,175-mile trail from Maine to Georgia.",url:"https://www.nps.gov/appa",code:"appa"},
+  {name:"Arches National Park",state:"Utah",type:"National Park",desc:"Over 2,000 natural sandstone arches in the high desert.",url:"https://www.nps.gov/arch",code:"arch"},
+  {name:"Arkansas Post National Memorial",state:"Arkansas",type:"National Memorial",desc:"First permanent European settlement in the lower Mississippi River Valley.",url:"https://www.nps.gov/arpo",code:"arpo"},
+  {name:"Arlington House, The Robert E. Lee Memorial",state:"Virginia",type:"National Memorial",desc:"Greek Revival mansion overlooking Washington D.C.",url:"https://www.nps.gov/arho",code:"arho"},
+  {name:"Assateague Island National Seashore",state:"Maryland",type:"National Seashore",desc:"Barrier island famous for wild ponies and pristine beaches.",url:"https://www.nps.gov/asis",code:"asis"},
+  {name:"Aztec Ruins National Monument",state:"New Mexico",type:"National Monument",desc:"Ancestral Puebloan great house and cultural center.",url:"https://www.nps.gov/azru",code:"azru"},
+  {name:"Badlands National Park",state:"South Dakota",type:"National Park",desc:"Striking geological formations and fossil beds.",url:"https://www.nps.gov/badl",code:"badl"},
+  {name:"Baltimore National Heritage Area",state:"Maryland",type:"Other",desc:"Exploring the rich cultural heritage of Baltimore.",url:"https://www.nps.gov/balt",code:"balt"},
+  {name:"Big Bend National Park",state:"Texas",type:"National Park",desc:"Desert wilderness along the Rio Grande in Texas.",url:"https://www.nps.gov/bibe",code:"bibe"},
+  {name:"Big Cypress National Preserve",state:"Florida",type:"Other",desc:"Vast freshwater swamp habitat in South Florida.",url:"https://www.nps.gov/bicy",code:"bicy"},
+  {name:"Big Hole National Battlefield",state:"Montana",type:"National Battlefield",desc:"Site of the 1877 battle between the Nez Perce and U.S. Army.",url:"https://www.nps.gov/biho",code:"biho"},
+  {name:"Big South Fork National River and Recreation Area",state:"Tennessee",type:"National Recreation Area",desc:"Rugged gorges and plateaus of the Cumberland Plateau.",url:"https://www.nps.gov/biso",code:"biso"},
+  {name:"Big Thicket National Preserve",state:"Texas",type:"Other",desc:"Diverse biological crossroads of North America.",url:"https://www.nps.gov/bith",code:"bith"},
+  {name:"Bighorn Canyon National Recreation Area",state:"Montana",type:"National Recreation Area",desc:"Rugged canyon carved by the Bighorn River.",url:"https://www.nps.gov/bica",code:"bica"},
+  {name:"Biscayne National Park",state:"Florida",type:"National Park",desc:"Pristine subtropical waters and vibrant coral reefs.",url:"https://www.nps.gov/bisc",code:"bisc"},
+  {name:"Black Canyon of the Gunnison National Park",state:"Colorado",type:"National Park",desc:"Dark, narrow walls of one of North America's most dramatic canyons.",url:"https://www.nps.gov/blca",code:"blca"},
+  {name:"Blue Ridge Parkway",state:"Virginia",type:"National Parkway",desc:"Scenic motor road connecting Shenandoah and Great Smoky Mountains.",url:"https://www.nps.gov/blri",code:"blri"},
+  {name:"Bluestone National Scenic River",state:"West Virginia",type:"Other",desc:"Free-flowing river through the Appalachian Mountains.",url:"https://www.nps.gov/blue",code:"blue"},
+  {name:"Booker T. Washington National Monument",state:"Virginia",type:"National Monument",desc:"Birthplace of the famous educator and leader.",url:"https://www.nps.gov/bowa",code:"bowa"},
+  {name:"Boston African American National Historic Site",state:"Massachusetts",type:"National Historic Site",desc:"Sites related to African American history in Boston.",url:"https://www.nps.gov/boaf",code:"boaf"},
+  {name:"Boston Harbor Islands National Recreation Area",state:"Massachusetts",type:"National Recreation Area",desc:"34 islands in Boston Harbor with rich history.",url:"https://www.nps.gov/boha",code:"boha"},
+  {name:"Boston National Historical Park",state:"Massachusetts",type:"Other",desc:"Sites significant in the American Revolution.",url:"https://www.nps.gov/bost",code:"bost"},
+  {name:"Bryce Canyon National Park",state:"Utah",type:"National Park",desc:"Thousands of hoodoos in one of nature's most colorful displays.",url:"https://www.nps.gov/brca",code:"brca"},
+  {name:"Buck Island Reef National Monument",state:"Virgin Islands",type:"National Monument",desc:"Underwater trail and one of the finest marine gardens in the Caribbean.",url:"https://www.nps.gov/buis",code:"buis"},
+  {name:"Buffalo National River",state:"Arkansas",type:"Other",desc:"First national river, flowing free for 135 miles.",url:"https://www.nps.gov/buff",code:"buff"},
+  {name:"C&O Canal National Historical Park",state:"Maryland",type:"Other",desc:"184.5-mile towpath along the Potomac River.",url:"https://www.nps.gov/choh",code:"choh"},
+  {name:"Cabrillo National Monument",state:"California",type:"National Monument",desc:"Site of the first European expedition to land on the West Coast.",url:"https://www.nps.gov/cabr",code:"cabr"},
+  {name:"Canaveral National Seashore",state:"Florida",type:"National Seashore",desc:"24 miles of undeveloped barrier island along the Space Coast.",url:"https://www.nps.gov/cana",code:"cana"},
+  {name:"Canyon de Chelly National Monument",state:"Arizona",type:"National Monument",desc:"Home to ancestral Puebloans for 5,000 years.",url:"https://www.nps.gov/cach",code:"cach"},
+  {name:"Canyonlands National Park",state:"Utah",type:"National Park",desc:"Dramatic landscape carved by the Colorado and Green Rivers.",url:"https://www.nps.gov/cany",code:"cany"},
+  {name:"Cape Cod National Seashore",state:"Massachusetts",type:"National Seashore",desc:"40 miles of pristine Atlantic Ocean beaches.",url:"https://www.nps.gov/caco",code:"caco"},
+  {name:"Cape Hatteras National Seashore",state:"North Carolina",type:"National Seashore",desc:"First National Seashore, protecting 70 miles of Outer Banks.",url:"https://www.nps.gov/caha",code:"caha"},
+  {name:"Cape Lookout National Seashore",state:"North Carolina",type:"National Seashore",desc:"Undeveloped chain of barrier islands in the Southern Outer Banks.",url:"https://www.nps.gov/calo",code:"calo"},
+  {name:"Capitol Reef National Park",state:"Utah",type:"National Park",desc:"A 100-mile wrinkle in Earth's crust called the Waterpocket Fold.",url:"https://www.nps.gov/care",code:"care"},
+  {name:"Capulin Volcano National Monument",state:"New Mexico",type:"National Monument",desc:"An extinct cinder cone volcano in northeastern New Mexico.",url:"https://www.nps.gov/cavo",code:"cavo"},
+  {name:"Carl Sandburg Home National Historic Site",state:"North Carolina",type:"National Historic Site",desc:"Home of the beloved American poet and Lincoln biographer.",url:"https://www.nps.gov/carl",code:"carl"},
+  {name:"Carlsbad Caverns National Park",state:"New Mexico",type:"National Park",desc:"More than 119 caves in a Chihuahuan Desert.",url:"https://www.nps.gov/cave",code:"cave"},
+  {name:"Carter G. Woodson Home National Historic Site",state:"District of Columbia",type:"National Historic Site",desc:"Home of the 'Father of Black History'.",url:"https://www.nps.gov/cawo",code:"cawo"},
+  {name:"Casa Grande Ruins National Monument",state:"Arizona",type:"National Monument",desc:"One of the largest prehistoric structures ever built in North America.",url:"https://www.nps.gov/cagr",code:"cagr"},
+  {name:"Castillo de San Marcos National Monument",state:"Florida",type:"National Monument",desc:"The oldest masonry fort in the continental United States.",url:"https://www.nps.gov/casa",code:"casa"},
+  {name:"Castle Clinton National Monument",state:"New York",type:"National Monument",desc:"A circular sandstone fort at the tip of Manhattan.",url:"https://www.nps.gov/cacl",code:"cacl"},
+  {name:"Catoctin Mountain Park",state:"Maryland",type:"Other",desc:"Forested park in the Blue Ridge Mountains.",url:"https://www.nps.gov/cato",code:"cato"},
+  {name:"Cedar Breaks National Monument",state:"Utah",type:"National Monument",desc:"A multi-colored amphitheater carved into the markagunt Plateau.",url:"https://www.nps.gov/cebr",code:"cebr"},
+  {name:"Chaco Culture National Historical Park",state:"New Mexico",type:"Other",desc:"Center of Ancestral Puebloan culture between 850 and 1150 CE.",url:"https://www.nps.gov/chcu",code:"chcu"},
+  {name:"Chamizal National Memorial",state:"Texas",type:"National Memorial",desc:"Commemorating the peaceful settlement of a 100-year border dispute.",url:"https://www.nps.gov/cham",code:"cham"},
+  {name:"Channel Islands National Park",state:"California",type:"National Park",desc:"Five islands off the coast of Southern California with unique ecology.",url:"https://www.nps.gov/chis",code:"chis"},
+  {name:"Charles Pinckney National Historic Site",state:"South Carolina",type:"National Historic Site",desc:"Preserving the legacy of the Founding Father.",url:"https://www.nps.gov/chpi",code:"chpi"},
+  {name:"Chattahoochee River National Recreation Area",state:"Georgia",type:"National Recreation Area",desc:"48-mile stretch of the Chattahoochee River through metro Atlanta.",url:"https://www.nps.gov/chat",code:"chat"},
+  {name:"Chesapeake & Ohio Canal National Historical Park",state:"Maryland",type:"Other",desc:"Historic canal towpath from Washington to Cumberland.",url:"https://www.nps.gov/choh",code:"choh2"},
+  {name:"Chickamauga and Chattanooga National Military Park",state:"Georgia",type:"National Battlefield",desc:"Commemorating major Civil War battles in Tennessee and Georgia.",url:"https://www.nps.gov/chch",code:"chch"},
+  {name:"Chiricahua National Monument",state:"Arizona",type:"National Monument",desc:"Spectacular rock formations in the Chiricahua Mountains.",url:"https://www.nps.gov/chir",code:"chir"},
+  {name:"Christiansted National Historic Site",state:"Virgin Islands",type:"National Historic Site",desc:"Preserving the Danish colonial heritage of St. Croix.",url:"https://www.nps.gov/chri",code:"chri"},
+  {name:"City of Rocks National Reserve",state:"Idaho",type:"Other",desc:"City-like formations of granite rocks used by pioneers.",url:"https://www.nps.gov/ciro",code:"ciro"},
+  {name:"Clara Barton National Historic Site",state:"Maryland",type:"National Historic Site",desc:"Home of the founder of the American Red Cross.",url:"https://www.nps.gov/clba",code:"clba"},
+  {name:"Colonial National Historical Park",state:"Virginia",type:"Other",desc:"Jamestown, Yorktown, and the Colonial Parkway.",url:"https://www.nps.gov/colo",code:"colo"},
+  {name:"Colorado National Monument",state:"Colorado",type:"National Monument",desc:"Towering monoliths and canyons along the Book Cliffs.",url:"https://www.nps.gov/colm",code:"colm"},
+  {name:"Congaree National Park",state:"South Carolina",type:"National Park",desc:"Largest intact expanse of old growth bottomland forest in the U.S.",url:"https://www.nps.gov/cong",code:"cong"},
+  {name:"Coronado National Memorial",state:"Arizona",type:"National Memorial",desc:"Commemorating the first major European expedition into North America.",url:"https://www.nps.gov/coro",code:"coro"},
+  {name:"Coulee Dam National Recreation Area",state:"Washington",type:"National Recreation Area",desc:"Franklin D. Roosevelt Lake formed by Grand Coulee Dam.",url:"https://www.nps.gov/laro",code:"laro"},
+  {name:"Crater Lake National Park",state:"Oregon",type:"National Park",desc:"Deepest lake in the United States, formed in a volcanic caldera.",url:"https://www.nps.gov/crla",code:"crla"},
+  {name:"Craters of the Moon National Monument",state:"Idaho",type:"National Monument",desc:"Vast lava field on the Snake River Plain.",url:"https://www.nps.gov/crmo",code:"crmo"},
+  {name:"Cumberland Gap National Historical Park",state:"Kentucky",type:"Other",desc:"Famous gateway through the Appalachian Mountains.",url:"https://www.nps.gov/cuga",code:"cuga"},
+  {name:"Cumberland Island National Seashore",state:"Georgia",type:"National Seashore",desc:"Georgia's largest and southernmost barrier island.",url:"https://www.nps.gov/cuis",code:"cuis"},
+  {name:"Curecanti National Recreation Area",state:"Colorado",type:"National Recreation Area",desc:"Three reservoirs formed by dams on the Gunnison River.",url:"https://www.nps.gov/cure",code:"cure"},
+  {name:"Cuyahoga Valley National Park",state:"Ohio",type:"National Park",desc:"Scenic river valley between Cleveland and Akron, Ohio.",url:"https://www.nps.gov/cuva",code:"cuva"},
+  {name:"De Soto National Memorial",state:"Florida",type:"National Memorial",desc:"Commemorating the first large-scale European expedition into North America.",url:"https://www.nps.gov/deso",code:"deso"},
+  {name:"Death Valley National Park",state:"California",type:"National Park",desc:"Hottest, driest, lowest national park in North America.",url:"https://www.nps.gov/deva",code:"deva"},
+  {name:"Delaware Water Gap National Recreation Area",state:"New Jersey",type:"National Recreation Area",desc:"70,000 acres along the Delaware River.",url:"https://www.nps.gov/dewa",code:"dewa"},
+  {name:"Denali National Park and Preserve",state:"Alaska",type:"National Park",desc:"Home to North America's tallest peak.",url:"https://www.nps.gov/dena",code:"dena"},
+  {name:"Devils Postpile National Monument",state:"California",type:"National Monument",desc:"Rare formation of columnar basalt and glacial polish.",url:"https://www.nps.gov/depo",code:"depo"},
+  {name:"Devils Tower National Monument",state:"Wyoming",type:"National Monument",desc:"First National Monument, a striking igneous intrusion.",url:"https://www.nps.gov/deto",code:"deto"},
+  {name:"Dinosaur National Monument",state:"Colorado",type:"National Monument",desc:"Fossil quarry and spectacular canyons carved by the Green River.",url:"https://www.nps.gov/dino",code:"dino"},
+  {name:"Dry Tortugas National Park",state:"Florida",type:"National Park",desc:"Remote islands with a Civil War-era fort and superb snorkeling.",url:"https://www.nps.gov/drto",code:"drto"},
+  {name:"Ebey's Landing National Historical Reserve",state:"Washington",type:"Other",desc:"Commemorating the exploration and settlement of Puget Sound.",url:"https://www.nps.gov/ebla",code:"ebla"},
+  {name:"Edgar Allan Poe National Historic Site",state:"Pennsylvania",type:"National Historic Site",desc:"Home of the famous American author.",url:"https://www.nps.gov/edal",code:"edal"},
+  {name:"Edison National Historic Site",state:"New Jersey",type:"National Historic Site",desc:"Home and laboratory of Thomas Alva Edison.",url:"https://www.nps.gov/edis",code:"edis"},
+  {name:"Effigy Mounds National Monument",state:"Iowa",type:"National Monument",desc:"Outstanding examples of prehistoric mound building culture.",url:"https://www.nps.gov/efmo",code:"efmo"},
+  {name:"Eisenhower National Historic Site",state:"Pennsylvania",type:"National Historic Site",desc:"Home and farm of the 34th President.",url:"https://www.nps.gov/eise",code:"eise"},
+  {name:"El Malpais National Monument",state:"New Mexico",type:"National Monument",desc:"Dramatic volcanic landscape with lava tubes and cinder cones.",url:"https://www.nps.gov/elma",code:"elma"},
+  {name:"El Morro National Monument",state:"New Mexico",type:"National Monument",desc:"Pool of water and inscriptions left by travelers.",url:"https://www.nps.gov/elmo",code:"elmo"},
+  {name:"Eleanor Roosevelt National Historic Site",state:"New York",type:"National Historic Site",desc:"Home of the longest-serving First Lady.",url:"https://www.nps.gov/elro",code:"elro"},
+  {name:"Everglades National Park",state:"Florida",type:"National Park",desc:"Largest subtropical wilderness in the United States.",url:"https://www.nps.gov/ever",code:"ever"},
+  {name:"Federal Hall National Memorial",state:"New York",type:"National Memorial",desc:"Site of Washington's first inauguration and first Congress.",url:"https://www.nps.gov/feha",code:"feha"},
+  {name:"Fire Island National Seashore",state:"New York",type:"National Seashore",desc:"32-mile barrier island off the southern shore of Long Island.",url:"https://www.nps.gov/fiis",code:"fiis"},
+  {name:"First Ladies National Historic Site",state:"Ohio",type:"National Historic Site",desc:"Honoring the first ladies of the United States.",url:"https://www.nps.gov/fila",code:"fila"},
+  {name:"Florissant Fossil Beds National Monument",state:"Colorado",type:"National Monument",desc:"Ancient lake deposits preserving a remarkable fossil record.",url:"https://www.nps.gov/flfo",code:"flfo"},
+  {name:"Ford's Theatre National Historic Site",state:"District of Columbia",type:"National Historic Site",desc:"Site of the assassination of Abraham Lincoln.",url:"https://www.nps.gov/foth",code:"foth"},
+  {name:"Fort Bowie National Historic Site",state:"Arizona",type:"National Historic Site",desc:"Site of the struggle between the Apache and the U.S. Army.",url:"https://www.nps.gov/fobo",code:"fobo"},
+  {name:"Fort Caroline National Memorial",state:"Florida",type:"National Memorial",desc:"Site of the first significant French settlement in North America.",url:"https://www.nps.gov/foca",code:"foca"},
+  {name:"Fort Davis National Historic Site",state:"Texas",type:"National Historic Site",desc:"Best preserved frontier military post in the Southwest.",url:"https://www.nps.gov/foda",code:"foda"},
+  {name:"Fort Donelson National Battlefield",state:"Tennessee",type:"National Battlefield",desc:"First major Union victory of the Civil War.",url:"https://www.nps.gov/fodo",code:"fodo"},
+  {name:"Fort Frederica National Monument",state:"Georgia",type:"National Monument",desc:"Site of the 1742 Battle of Bloody Marsh that kept Florida British.",url:"https://www.nps.gov/fofr",code:"fofr"},
+  {name:"Fort Laramie National Historic Site",state:"Wyoming",type:"National Historic Site",desc:"Fur trade post and military garrison on the Oregon Trail.",url:"https://www.nps.gov/fola",code:"fola"},
+  {name:"Fort Larned National Historic Site",state:"Kansas",type:"National Historic Site",desc:"Best preserved military fort on the Santa Fe Trail.",url:"https://www.nps.gov/fols",code:"fols"},
+  {name:"Fort Matanzas National Monument",state:"Florida",type:"National Monument",desc:"Small Spanish watchtower guarding the southern approach to St. Augustine.",url:"https://www.nps.gov/foma",code:"foma"},
+  {name:"Fort McHenry National Monument and Historic Shrine",state:"Maryland",type:"National Monument",desc:"Site that inspired Francis Scott Key to write the Star-Spangled Banner.",url:"https://www.nps.gov/fomc",code:"fomc"},
+  {name:"Fort Necessity National Battlefield",state:"Pennsylvania",type:"National Battlefield",desc:"Site of George Washington's only military surrender.",url:"https://www.nps.gov/fone",code:"fone"},
+  {name:"Fort Point National Historic Site",state:"California",type:"National Historic Site",desc:"Civil War era brick fortification under the Golden Gate Bridge.",url:"https://www.nps.gov/fopo",code:"fopo"},
+  {name:"Fort Pulaski National Monument",state:"Georgia",type:"National Monument",desc:"Site of a pivotal Civil War battle that changed coastal fortification.",url:"https://www.nps.gov/fopu",code:"fopu"},
+  {name:"Fort Raleigh National Historic Site",state:"North Carolina",type:"National Historic Site",desc:"Site of the first English settlement in America.",url:"https://www.nps.gov/fora",code:"fora"},
+  {name:"Fort Scott National Historic Site",state:"Kansas",type:"National Historic Site",desc:"Military post on the edge of the American frontier.",url:"https://www.nps.gov/fosc",code:"fosc"},
+  {name:"Fort Smith National Historic Site",state:"Arkansas",type:"National Historic Site",desc:"Gateway to the West and law in Indian Territory.",url:"https://www.nps.gov/fosm",code:"fosm"},
+  {name:"Fort Stanwix National Monument",state:"New York",type:"National Monument",desc:"Fortification that helped stop the British in 1777.",url:"https://www.nps.gov/fost",code:"fost"},
+  {name:"Fort Sumter and Fort Moultrie National Historical Park",state:"South Carolina",type:"Other",desc:"Where the Civil War began.",url:"https://www.nps.gov/fosu",code:"fosu"},
+  {name:"Fort Union National Monument",state:"New Mexico",type:"National Monument",desc:"Largest 19th-century military fort in the Southwest.",url:"https://www.nps.gov/foun",code:"foun"},
+  {name:"Fort Union Trading Post National Historic Site",state:"North Dakota",type:"National Historic Site",desc:"Most important fur trade post on the upper Missouri River.",url:"https://www.nps.gov/fous",code:"fous"},
+  {name:"Fort Vancouver National Historic Site",state:"Washington",type:"National Historic Site",desc:"Historic Hudson's Bay Company fur trade post.",url:"https://www.nps.gov/fova",code:"fova"},
+  {name:"Fort Washington Park",state:"Maryland",type:"Other",desc:"19th-century fortification protecting Washington D.C.",url:"https://www.nps.gov/fowa",code:"fowa"},
+  {name:"Fossil Butte National Monument",state:"Wyoming",type:"National Monument",desc:"Remarkably preserved fossil fish and other organisms.",url:"https://www.nps.gov/fobu",code:"fobu"},
+  {name:"Franklin Delano Roosevelt Memorial",state:"District of Columbia",type:"National Memorial",desc:"Memorial to the 32nd President spanning four terms.",url:"https://www.nps.gov/frde",code:"frde"},
+  {name:"Frederick Douglass National Historic Site",state:"District of Columbia",type:"National Historic Site",desc:"Home of the famous abolitionist and statesman.",url:"https://www.nps.gov/frdo",code:"frdo"},
+  {name:"Frederick Law Olmsted National Historic Site",state:"Massachusetts",type:"National Historic Site",desc:"Home and office of the father of American landscape architecture.",url:"https://www.nps.gov/frla",code:"frla"},
+  {name:"Fredericksburg & Spotsylvania National Military Park",state:"Virginia",type:"National Battlefield",desc:"Site of four major Civil War battles.",url:"https://www.nps.gov/frsp",code:"frsp"},
+  {name:"Friendship Hill National Historic Site",state:"Pennsylvania",type:"National Historic Site",desc:"Country estate of Albert Gallatin, Secretary of the Treasury.",url:"https://www.nps.gov/frhi",code:"frhi"},
+  {name:"Gates of the Arctic National Park and Preserve",state:"Alaska",type:"National Park",desc:"Vast wilderness north of the Arctic Circle.",url:"https://www.nps.gov/gaar",code:"gaar"},
+  {name:"Gateway Arch National Park",state:"Missouri",type:"National Park",desc:"Symbol of westward expansion and the iconic Gateway Arch.",url:"https://www.nps.gov/jeff",code:"jeff"},
+  {name:"Gateway National Recreation Area",state:"New York",type:"National Recreation Area",desc:"Urban oasis of beaches, wildlife, and history.",url:"https://www.nps.gov/gate",code:"gate"},
+  {name:"Gauley River National Recreation Area",state:"West Virginia",type:"National Recreation Area",desc:"One of the premier whitewater rivers in the eastern U.S.",url:"https://www.nps.gov/gari",code:"gari"},
+  {name:"General Grant National Memorial",state:"New York",type:"National Memorial",desc:"Tomb of Ulysses S. Grant and his wife Julia.",url:"https://www.nps.gov/gegr",code:"gegr"},
+  {name:"George Rogers Clark National Historical Park",state:"Indiana",type:"Other",desc:"Commemorating the Revolutionary War in the Northwest Territory.",url:"https://www.nps.gov/gero",code:"gero"},
+  {name:"George Washington Birthplace National Monument",state:"Virginia",type:"National Monument",desc:"Birthplace of the first president.",url:"https://www.nps.gov/gewa",code:"gewa"},
+  {name:"George Washington Carver National Monument",state:"Missouri",type:"National Monument",desc:"Birthplace of the famous scientist who revolutionized American agriculture.",url:"https://www.nps.gov/gwca",code:"gwca"},
+  {name:"George Washington Memorial Parkway",state:"Virginia",type:"National Parkway",desc:"Commemorative parkway along the Potomac River.",url:"https://www.nps.gov/gwmp",code:"gwmp"},
+  {name:"Gettysburg National Military Park",state:"Pennsylvania",type:"National Battlefield",desc:"Site of the Civil War's turning point.",url:"https://www.nps.gov/gett",code:"gett"},
+  {name:"Glacier Bay National Park and Preserve",state:"Alaska",type:"National Park",desc:"A showcase for glacial retreat and ecological succession.",url:"https://www.nps.gov/glba",code:"glba"},
+  {name:"Glacier National Park",state:"Montana",type:"National Park",desc:"Over a million acres of forests, alpine meadows, lakes, and rugged terrain.",url:"https://www.nps.gov/glac",code:"glac"},
+  {name:"Glen Canyon National Recreation Area",state:"Arizona",type:"National Recreation Area",desc:"Lake Powell and surrounding canyon country.",url:"https://www.nps.gov/glca",code:"glca"},
+  {name:"Gloria Dei (Old Swedes) Church National Historic Site",state:"Pennsylvania",type:"National Historic Site",desc:"The oldest church building in Pennsylvania.",url:"https://www.nps.gov/glde",code:"glde"},
+  {name:"Golden Gate National Recreation Area",state:"California",type:"National Recreation Area",desc:"Vast parklands around San Francisco Bay.",url:"https://www.nps.gov/goga",code:"goga"},
+  {name:"Golden Spike National Historical Park",state:"Utah",type:"Other",desc:"Where the first transcontinental railroad was completed.",url:"https://www.nps.gov/gosp",code:"gosp"},
+  {name:"Governors Island National Monument",state:"New York",type:"National Monument",desc:"Urban oasis in New York Harbor.",url:"https://www.nps.gov/gois",code:"gois"},
+  {name:"Grand Canyon National Park",state:"Arizona",type:"National Park",desc:"One of the world's great natural wonders.",url:"https://www.nps.gov/grca",code:"grca"},
+  {name:"Grand Teton National Park",state:"Wyoming",type:"National Park",desc:"Spectacular mountain scenery with the jagged Teton Range.",url:"https://www.nps.gov/grte",code:"grte"},
+  {name:"Grant-Kohrs Ranch National Historic Site",state:"Montana",type:"National Historic Site",desc:"One of the largest and best preserved 19th-century ranches.",url:"https://www.nps.gov/grko",code:"grko"},
+  {name:"Great Basin National Park",state:"Nevada",type:"National Park",desc:"Ancient bristlecone pines, Lehman Caves, and Wheeler Peak.",url:"https://www.nps.gov/grba",code:"grba"},
+  {name:"Great Sand Dunes National Park and Preserve",state:"Colorado",type:"National Park",desc:"Tallest sand dunes in North America.",url:"https://www.nps.gov/grsa",code:"grsa"},
+  {name:"Great Smoky Mountains National Park",state:"Tennessee",type:"National Park",desc:"Most visited national park with ancient mountains.",url:"https://www.nps.gov/grsm",code:"grsm"},
+  {name:"Guadalupe Mountains National Park",state:"Texas",type:"National Park",desc:"World's most extensive ancient marine fossil reef.",url:"https://www.nps.gov/gumo",code:"gumo"},
+  {name:"Guilford Courthouse National Military Park",state:"North Carolina",type:"National Battlefield",desc:"Pivotal battle of the Revolutionary War.",url:"https://www.nps.gov/guco",code:"guco"},
+  {name:"Gulf Islands National Seashore",state:"Florida",type:"National Seashore",desc:"White sand beaches and historic forts along the Gulf of Mexico.",url:"https://www.nps.gov/guis",code:"guis"},
+  {name:"Haleakalā National Park",state:"Hawaii",type:"National Park",desc:"Massive shield volcano and unique biological ecosystems.",url:"https://www.nps.gov/hale",code:"hale"},
+  {name:"Hampton National Historic Site",state:"Maryland",type:"National Historic Site",desc:"One of the largest Georgian mansions in America.",url:"https://www.nps.gov/hamp",code:"hamp"},
+  {name:"Harpers Ferry National Historical Park",state:"West Virginia",type:"Other",desc:"Site of John Brown's raid and Civil War history.",url:"https://www.nps.gov/hafe",code:"hafe"},
+  {name:"Harry S Truman National Historic Site",state:"Missouri",type:"National Historic Site",desc:"Home of the 33rd President.",url:"https://www.nps.gov/hstr",code:"hstr"},
+  {name:"Hawaii Volcanoes National Park",state:"Hawaii",type:"National Park",desc:"Active volcanoes in a landscape of dramatic contrasts.",url:"https://www.nps.gov/havo",code:"havo"},
+  {name:"Herbert Hoover National Historic Site",state:"Iowa",type:"National Historic Site",desc:"Birthplace and burial site of the 31st President.",url:"https://www.nps.gov/heho",code:"heho"},
+  {name:"Home of Franklin D. Roosevelt National Historic Site",state:"New York",type:"National Historic Site",desc:"Birthplace and lifelong home of the 32nd President.",url:"https://www.nps.gov/hofr",code:"hofr"},
+  {name:"Homestead National Historical Park",state:"Nebraska",type:"Other",desc:"Commemorating the Homestead Act of 1862.",url:"https://www.nps.gov/home",code:"home"},
+  {name:"Hopewell Culture National Historical Park",state:"Ohio",type:"Other",desc:"Remarkable earthworks of the Hopewell tradition.",url:"https://www.nps.gov/hocu",code:"hocu"},
+  {name:"Hopewell Furnace National Historic Site",state:"Pennsylvania",type:"National Historic Site",desc:"An early American industrial village.",url:"https://www.nps.gov/hofu",code:"hofu"},
+  {name:"Horseshoe Bend National Military Park",state:"Alabama",type:"National Battlefield",desc:"Site of the final battle of the Creek War of 1813-14.",url:"https://www.nps.gov/hobe",code:"hobe"},
+  {name:"Hot Springs National Park",state:"Arkansas",type:"National Park",desc:"Natural hot springs and historic bathhouses.",url:"https://www.nps.gov/hosp",code:"hosp"},
+  {name:"Hovenweep National Monument",state:"Utah",type:"National Monument",desc:"Ancient towers built by Ancestral Puebloans.",url:"https://www.nps.gov/hove",code:"hove"},
+  {name:"Hubbell Trading Post National Historic Site",state:"Arizona",type:"National Historic Site",desc:"Oldest continuously operating trading post on the Navajo Nation.",url:"https://www.nps.gov/hutr",code:"hutr"},
+  {name:"Ice Age National Scenic Trail",state:"Wisconsin",type:"Other",desc:"1,200-mile trail along the edge of the last glacier.",url:"https://www.nps.gov/iace",code:"iace"},
+  {name:"Indiana Dunes National Park",state:"Indiana",type:"National Park",desc:"Remarkable diversity in a compact stretch of Lake Michigan shoreline.",url:"https://www.nps.gov/indu",code:"indu"},
+  {name:"Isle Royale National Park",state:"Michigan",type:"National Park",desc:"Wilderness island in Lake Superior with wolves and moose.",url:"https://www.nps.gov/isro",code:"isro"},
+  {name:"James A. Garfield National Historic Site",state:"Ohio",type:"National Historic Site",desc:"Home of the 20th President.",url:"https://www.nps.gov/jaga",code:"jaga"},
+  {name:"Jean Lafitte National Historical Park and Preserve",state:"Louisiana",type:"Other",desc:"Preserving the culture of the Mississippi Delta.",url:"https://www.nps.gov/jela",code:"jela"},
+  {name:"Jefferson National Expansion Memorial",state:"Missouri",type:"National Memorial",desc:"Commemorating the Louisiana Purchase.",url:"https://www.nps.gov/jeff",code:"jeff2"},
+  {name:"Jewel Cave National Monument",state:"South Dakota",type:"National Monument",desc:"Third longest cave in the world.",url:"https://www.nps.gov/jeca",code:"jeca"},
+  {name:"Jimmy Carter National Historic Site",state:"Georgia",type:"National Historic Site",desc:"Plains, Georgia, the hometown of the 39th President.",url:"https://www.nps.gov/jica",code:"jica"},
+  {name:"John Day Fossil Beds National Monument",state:"Oregon",type:"National Monument",desc:"Rich and diverse fossil record spanning 40 million years.",url:"https://www.nps.gov/joda",code:"joda"},
+  {name:"John F. Kennedy Center for the Performing Arts",state:"District of Columbia",type:"National Memorial",desc:"National cultural center and memorial to John F. Kennedy.",url:"https://www.nps.gov/jofi",code:"jofi"},
+  {name:"John Muir National Historic Site",state:"California",type:"National Historic Site",desc:"Home of the father of the national parks movement.",url:"https://www.nps.gov/jomu",code:"jomu"},
+  {name:"Johnstown Flood National Memorial",state:"Pennsylvania",type:"National Memorial",desc:"Commemorating the devastating 1889 flood.",url:"https://www.nps.gov/jofl",code:"jofl"},
+  {name:"Joshua Tree National Park",state:"California",type:"National Park",desc:"Where the Mojave and Colorado deserts meet.",url:"https://www.nps.gov/jotr",code:"jotr"},
+  {name:"Juan Bautista de Anza National Historic Trail",state:"California",type:"Other",desc:"1,200-mile trail celebrating the 1775-76 overland expedition.",url:"https://www.nps.gov/juba",code:"juba"},
+  {name:"Katmai National Park and Preserve",state:"Alaska",type:"National Park",desc:"Famous for brown bears fishing for salmon at Brooks Falls.",url:"https://www.nps.gov/katm",code:"katm"},
+  {name:"Kenai Fjords National Park",state:"Alaska",type:"National Park",desc:"Wildlife and tidewater glaciers along Alaska's Kenai Peninsula.",url:"https://www.nps.gov/kefj",code:"kefj"},
+  {name:"Kenilworth Park and Aquatic Gardens",state:"District of Columbia",type:"Other",desc:"Only National Park Service aquatic garden.",url:"https://www.nps.gov/keaq",code:"keaq"},
+  {name:"Kings Canyon National Park",state:"California",type:"National Park",desc:"Giant sequoias and the deep Kings Canyon.",url:"https://www.nps.gov/seki",code:"seki2"},
+  {name:"Klondike Gold Rush National Historical Park",state:"Alaska",type:"Other",desc:"Seattle's role and the Chilkoot Trail in the 1898 Gold Rush.",url:"https://www.nps.gov/klgo",code:"klgo"},
+  {name:"Knife River Indian Villages National Historic Site",state:"North Dakota",type:"National Historic Site",desc:"Earthlodge villages of the Hidatsa and Mandan peoples.",url:"https://www.nps.gov/knri",code:"knri"},
+  {name:"Korean War Veterans Memorial",state:"District of Columbia",type:"National Memorial",desc:"Honoring those who served in the Korean War.",url:"https://www.nps.gov/kowa",code:"kowa"},
+  {name:"Lassen Volcanic National Park",state:"California",type:"National Park",desc:"All four types of volcanoes exist in this hydrothermal landscape.",url:"https://www.nps.gov/lavo",code:"lavo"},
+  {name:"Lava Beds National Monument",state:"California",type:"National Monument",desc:"Dramatic volcanic landscape with hundreds of lava tube caves.",url:"https://www.nps.gov/labe",code:"labe"},
+  {name:"Lewis & Clark National Historical Park",state:"Oregon",type:"Other",desc:"Where Lewis and Clark spent the winter of 1805-06.",url:"https://www.nps.gov/lewi",code:"lewi"},
+  {name:"Lincoln Boyhood National Memorial",state:"Indiana",type:"National Memorial",desc:"Farm where Abraham Lincoln grew up.",url:"https://www.nps.gov/libo",code:"libo"},
+  {name:"Lincoln Home National Historic Site",state:"Illinois",type:"National Historic Site",desc:"Home of Abraham Lincoln during his political career.",url:"https://www.nps.gov/liho",code:"liho"},
+  {name:"Lincoln Memorial",state:"District of Columbia",type:"National Memorial",desc:"Iconic memorial to the 16th President.",url:"https://www.nps.gov/linc",code:"linc"},
+  {name:"Longfellow House–Washington's Headquarters National Historic Site",state:"Massachusetts",type:"National Historic Site",desc:"Home of Henry Wadsworth Longfellow.",url:"https://www.nps.gov/long",code:"long"},
+  {name:"Lowell National Historical Park",state:"Massachusetts",type:"Other",desc:"Birthplace of the American Industrial Revolution.",url:"https://www.nps.gov/lowe",code:"lowe"},
+  {name:"Lyndon B. Johnson National Historical Park",state:"Texas",type:"Other",desc:"Birthplace, family ranch, and final resting place of the 36th President.",url:"https://www.nps.gov/lyjo",code:"lyjo"},
+  {name:"Mammoth Cave National Park",state:"Kentucky",type:"National Park",desc:"The world's longest known cave system.",url:"https://www.nps.gov/maca",code:"maca"},
+  {name:"Manassas National Battlefield Park",state:"Virginia",type:"National Battlefield",desc:"Site of two major Civil War battles.",url:"https://www.nps.gov/mana",code:"mana"},
+  {name:"Martin Luther King Jr. Memorial",state:"District of Columbia",type:"National Memorial",desc:"Memorial honoring the civil rights leader.",url:"https://www.nps.gov/mlkm",code:"mlkm"},
+  {name:"Martin Luther King Jr. National Historical Park",state:"Georgia",type:"Other",desc:"Birthplace and civil rights legacy of Dr. Martin Luther King Jr.",url:"https://www.nps.gov/malu",code:"malu"},
+  {name:"Martin Van Buren National Historic Site",state:"New York",type:"National Historic Site",desc:"Home of the 8th President.",url:"https://www.nps.gov/mava",code:"mava"},
+  {name:"Mary McLeod Bethune Council House National Historic Site",state:"District of Columbia",type:"National Historic Site",desc:"Home of the distinguished educator and civil rights leader.",url:"https://www.nps.gov/mamc",code:"mamc"},
+  {name:"Mesa Verde National Park",state:"Colorado",type:"National Park",desc:"Best preserved Ancestral Puebloan cliff dwellings in the world.",url:"https://www.nps.gov/meve",code:"meve"},
+  {name:"Minute Man National Historical Park",state:"Massachusetts",type:"Other",desc:"Where the American Revolution began.",url:"https://www.nps.gov/mima",code:"mima"},
+  {name:"Mojave National Preserve",state:"California",type:"Other",desc:"Desert landscape with sand dunes, lava fields, and Joshua trees.",url:"https://www.nps.gov/moja",code:"moja"},
+  {name:"Monocacy National Battlefield",state:"Maryland",type:"National Battlefield",desc:"Battle that saved Washington D.C. in 1864.",url:"https://www.nps.gov/mono",code:"mono"},
+  {name:"Montezuma Castle National Monument",state:"Arizona",type:"National Monument",desc:"One of the best preserved cliff dwellings in North America.",url:"https://www.nps.gov/moca",code:"moca"},
+  {name:"Moores Creek National Battlefield",state:"North Carolina",type:"National Battlefield",desc:"Pivotal American Revolution battle that secured North Carolina.",url:"https://www.nps.gov/mocr",code:"mocr"},
+  {name:"Morristown National Historical Park",state:"New Jersey",type:"Other",desc:"Washington's winter headquarters during the Revolution.",url:"https://www.nps.gov/morr",code:"morr"},
+  {name:"Mount Rainier National Park",state:"Washington",type:"National Park",desc:"An active stratovolcano draped in glaciers.",url:"https://www.nps.gov/mora",code:"mora"},
+  {name:"Mount Rushmore National Memorial",state:"South Dakota",type:"National Memorial",desc:"Iconic granite sculpture of four U.S. presidents.",url:"https://www.nps.gov/moru",code:"moru"},
+  {name:"Muir Woods National Monument",state:"California",type:"National Monument",desc:"Ancient old-growth coastal redwoods.",url:"https://www.nps.gov/muwo",code:"muwo"},
+  {name:"Natchez Trace Parkway",state:"Mississippi",type:"National Parkway",desc:"444-mile scenic drive along the historic Old Trace.",url:"https://www.nps.gov/natr",code:"natr"},
+  {name:"National Mall and Memorial Parks",state:"District of Columbia",type:"Other",desc:"Core of the nation's capital.",url:"https://www.nps.gov/nama",code:"nama"},
+  {name:"Natural Bridges National Monument",state:"Utah",type:"National Monument",desc:"Three spectacular natural bridges carved by streams.",url:"https://www.nps.gov/nabr",code:"nabr"},
+  {name:"Navajo National Monument",state:"Arizona",type:"National Monument",desc:"Three of the most intact Ancestral Puebloan cliff dwellings.",url:"https://www.nps.gov/nava",code:"nava"},
+  {name:"New Bedford Whaling National Historical Park",state:"Massachusetts",type:"Other",desc:"Preserving the heritage of whaling.",url:"https://www.nps.gov/nebe",code:"nebe"},
+  {name:"New Orleans Jazz National Historical Park",state:"Louisiana",type:"Other",desc:"Celebrating the birthplace of jazz.",url:"https://www.nps.gov/jazz",code:"jazz"},
+  {name:"New River Gorge National Park and Preserve",state:"West Virginia",type:"National Park",desc:"America's newest national park with a spectacular river gorge.",url:"https://www.nps.gov/neri",code:"neri"},
+  {name:"Nez Perce National Historical Park",state:"Idaho",type:"Other",desc:"History and culture of the Nez Perce people.",url:"https://www.nps.gov/nepe",code:"nepe"},
+  {name:"Nicodemus National Historic Site",state:"Kansas",type:"National Historic Site",desc:"Only remaining western town established by African Americans.",url:"https://www.nps.gov/nico",code:"nico"},
+  {name:"Ninety Six National Historic Site",state:"South Carolina",type:"National Historic Site",desc:"Site of a Revolutionary War battle.",url:"https://www.nps.gov/nisi",code:"nisi"},
+  {name:"Niobrara National Scenic River",state:"Nebraska",type:"Other",desc:"Scenic river with diverse plant and animal communities.",url:"https://www.nps.gov/niob",code:"niob"},
+  {name:"North Cascades National Park",state:"Washington",type:"National Park",desc:"Alpine landscapes with rugged peaks and glaciers.",url:"https://www.nps.gov/noca",code:"noca"},
+  {name:"Obed Wild and Scenic River",state:"Tennessee",type:"Other",desc:"Four streams of wild water on the Cumberland Plateau.",url:"https://www.nps.gov/obed",code:"obed"},
+  {name:"Ocmulgee Mounds National Historical Park",state:"Georgia",type:"Other",desc:"One of the most significant prehistoric sites in the Southeast.",url:"https://www.nps.gov/ocmu",code:"ocmu"},
+  {name:"Olympic National Park",state:"Washington",type:"National Park",desc:"Three ecosystems in one: glacier-clad peaks, rain forest, and coast.",url:"https://www.nps.gov/olym",code:"olym"},
+  {name:"Oregon Caves National Monument and Preserve",state:"Oregon",type:"National Monument",desc:"A marble cave and an old-growth forest.",url:"https://www.nps.gov/orca",code:"orca"},
+  {name:"Organ Pipe Cactus National Monument",state:"Arizona",type:"National Monument",desc:"Diverse Sonoran Desert plants and animals.",url:"https://www.nps.gov/orpi",code:"orpi"},
+  {name:"Ozark National Scenic Riverways",state:"Missouri",type:"Other",desc:"First national scenic riverway, featuring spring-fed Current and Jacks Fork Rivers.",url:"https://www.nps.gov/ozar",code:"ozar"},
+  {name:"Padre Island National Seashore",state:"Texas",type:"National Seashore",desc:"World's longest undeveloped barrier island.",url:"https://www.nps.gov/pais",code:"pais"},
+  {name:"Palo Alto Battlefield National Historical Park",state:"Texas",type:"National Battlefield",desc:"Site of the first battle of the Mexican-American War.",url:"https://www.nps.gov/paal",code:"paal"},
+  {name:"Pea Ridge National Military Park",state:"Arkansas",type:"National Battlefield",desc:"Significant Civil War battle in the western theater.",url:"https://www.nps.gov/peri",code:"peri"},
+  {name:"Pecos National Historical Park",state:"New Mexico",type:"Other",desc:"Ancestral Puebloan and Spanish Colonial ruins.",url:"https://www.nps.gov/peco",code:"peco"},
+  {name:"Perry's Victory and International Peace Memorial",state:"Ohio",type:"National Memorial",desc:"Commemorating Oliver Hazard Perry's victory.",url:"https://www.nps.gov/pevi",code:"pevi"},
+  {name:"Petersburg National Battlefield",state:"Virginia",type:"National Battlefield",desc:"Nine-month siege that led to the end of the Civil War.",url:"https://www.nps.gov/pete",code:"pete"},
+  {name:"Petrified Forest National Park",state:"Arizona",type:"National Park",desc:"Extensive petrified wood deposits from the late Triassic period.",url:"https://www.nps.gov/pefo",code:"pefo"},
+  {name:"Petroglyph National Monument",state:"New Mexico",type:"National Monument",desc:"One of the largest petroglyph sites in North America.",url:"https://www.nps.gov/petr",code:"petr"},
+  {name:"Pictured Rocks National Lakeshore",state:"Michigan",type:"National Seashore",desc:"Colorful sandstone cliffs along Lake Superior.",url:"https://www.nps.gov/piro",code:"piro"},
+  {name:"Pinnacles National Park",state:"California",type:"National Park",desc:"Volcanic spires rising out of the chaparral.",url:"https://www.nps.gov/pinn",code:"pinn"},
+  {name:"Pipe Spring National Monument",state:"Arizona",type:"National Monument",desc:"A stone fort built over a freshwater spring.",url:"https://www.nps.gov/pisp",code:"pisp"},
+  {name:"Pipestone National Monument",state:"Minnesota",type:"National Monument",desc:"Sacred pipestone quarry used by American Indian tribes.",url:"https://www.nps.gov/pipe",code:"pipe"},
+  {name:"Point Reyes National Seashore",state:"California",type:"National Seashore",desc:"Dramatic coastal scenery, wildlife, and history.",url:"https://www.nps.gov/pore",code:"pore"},
+  {name:"Poverty Point National Monument",state:"Louisiana",type:"National Monument",desc:"Unique geometric earthworks of an ancient city.",url:"https://www.nps.gov/popo",code:"popo"},
+  {name:"President Lincoln's Cottage at the Soldiers' Home",state:"District of Columbia",type:"National Memorial",desc:"Where Lincoln drafted the Emancipation Proclamation.",url:"https://www.nps.gov/prli",code:"prli"},
+  {name:"Pu'uhonua o Honaunau National Historical Park",state:"Hawaii",type:"Other",desc:"Ancient Hawaiian place of refuge.",url:"https://www.nps.gov/puho",code:"puho"},
+  {name:"Pu'ukohola Heiau National Historic Site",state:"Hawaii",type:"National Historic Site",desc:"Temple built by Kamehameha the Great.",url:"https://www.nps.gov/puhe",code:"puhe"},
+  {name:"Rainbow Bridge National Monument",state:"Utah",type:"National Monument",desc:"World's largest known natural bridge.",url:"https://www.nps.gov/rabr",code:"rabr"},
+  {name:"Reconstruction Era National Historical Park",state:"South Carolina",type:"Other",desc:"Commemorating Reconstruction after the Civil War.",url:"https://www.nps.gov/reer",code:"reer"},
+  {name:"Redwood National and State Parks",state:"California",type:"National Park",desc:"Tallest trees on Earth in ancient coastal forests.",url:"https://www.nps.gov/redw",code:"redw"},
+  {name:"Richmond National Battlefield Park",state:"Virginia",type:"National Battlefield",desc:"Civil War battlefields defending the Confederate capital.",url:"https://www.nps.gov/rich",code:"rich"},
+  {name:"Rocky Mountain National Park",state:"Colorado",type:"National Park",desc:"Stunning alpine scenery with over 60 peaks above 12,000 feet.",url:"https://www.nps.gov/romo",code:"romo"},
+  {name:"Roger Williams National Memorial",state:"Rhode Island",type:"National Memorial",desc:"Commemorating the founder of Rhode Island.",url:"https://www.nps.gov/rowi",code:"rowi"},
+  {name:"Rosie the Riveter WWII Home Front National Historical Park",state:"California",type:"Other",desc:"Story of the transformation of American society during WWII.",url:"https://www.nps.gov/rori",code:"rori"},
+  {name:"Russell Cave National Monument",state:"Alabama",type:"National Monument",desc:"Archaeological site spanning over 10,000 years of human history.",url:"https://www.nps.gov/ruca",code:"ruca"},
+  {name:"Sagamore Hill National Historic Site",state:"New York",type:"National Historic Site",desc:"Home of President Theodore Roosevelt.",url:"https://www.nps.gov/sahi",code:"sahi"},
+  {name:"Saguaro National Park",state:"Arizona",type:"National Park",desc:"Giant saguaro cacti in the Sonoran Desert.",url:"https://www.nps.gov/sagu",code:"sagu"},
+  {name:"Saint Croix Island International Historic Site",state:"Maine",type:"National Historic Site",desc:"Site of the first French settlement in North America.",url:"https://www.nps.gov/sacr",code:"sacr"},
+  {name:"Saint-Gaudens National Historical Park",state:"New Hampshire",type:"Other",desc:"Home and studio of the great American sculptor.",url:"https://www.nps.gov/saga",code:"saga"},
+  {name:"Salem Maritime National Historic Site",state:"Massachusetts",type:"National Historic Site",desc:"Preserving the maritime heritage of Salem.",url:"https://www.nps.gov/sama",code:"sama"},
+  {name:"San Antonio Missions National Historical Park",state:"Texas",type:"Other",desc:"Four missions of the Spanish Colonial era.",url:"https://www.nps.gov/saan",code:"saan"},
+  {name:"San Francisco Maritime National Historical Park",state:"California",type:"Other",desc:"Maritime history museum with historic vessels.",url:"https://www.nps.gov/safr",code:"safr"},
+  {name:"Sand Creek Massacre National Historic Site",state:"Colorado",type:"National Historic Site",desc:"Commemorating the 1864 massacre of peaceful Cheyenne and Arapaho.",url:"https://www.nps.gov/sand",code:"sand"},
+  {name:"Santa Monica Mountains National Recreation Area",state:"California",type:"National Recreation Area",desc:"Mountains and beaches surrounding Los Angeles.",url:"https://www.nps.gov/samo",code:"samo"},
+  {name:"Saratoga National Historical Park",state:"New York",type:"Other",desc:"Turning point of the American Revolution.",url:"https://www.nps.gov/sara",code:"sara"},
+  {name:"Saugus Iron Works National Historic Site",state:"Massachusetts",type:"National Historic Site",desc:"First iron works in colonial North America.",url:"https://www.nps.gov/sair",code:"sair"},
+  {name:"Scotts Bluff National Monument",state:"Nebraska",type:"National Monument",desc:"Prominent landmark on the Oregon Trail.",url:"https://www.nps.gov/scbl",code:"scbl"},
+  {name:"Sequoia National Park",state:"California",type:"National Park",desc:"Home to the world's largest trees by volume.",url:"https://www.nps.gov/seki",code:"seki"},
+  {name:"Shenandoah National Park",state:"Virginia",type:"National Park",desc:"Blue Ridge Mountains and Skyline Drive.",url:"https://www.nps.gov/shen",code:"shen"},
+  {name:"Shiloh National Military Park",state:"Tennessee",type:"National Battlefield",desc:"Pivotal Civil War battle along the Tennessee River.",url:"https://www.nps.gov/shil",code:"shil"},
+  {name:"Sitka National Historical Park",state:"Alaska",type:"Other",desc:"Site of the 1804 battle between Tlingit people and Russians.",url:"https://www.nps.gov/sitk",code:"sitk"},
+  {name:"Sleeping Bear Dunes National Lakeshore",state:"Michigan",type:"National Seashore",desc:"Towering sand dunes along Lake Michigan.",url:"https://www.nps.gov/slbe",code:"slbe"},
+  {name:"Springfield Armory National Historic Site",state:"Massachusetts",type:"National Historic Site",desc:"First American arsenal, site of Shays' Rebellion.",url:"https://www.nps.gov/spar",code:"spar"},
+  {name:"Statue of Liberty National Monument",state:"New York",type:"National Monument",desc:"Iconic symbol of freedom in New York Harbor.",url:"https://www.nps.gov/stli",code:"stli"},
+  {name:"Stones River National Battlefield",state:"Tennessee",type:"National Battlefield",desc:"Pivotal mid-South battle of the Civil War.",url:"https://www.nps.gov/stri",code:"stri"},
+  {name:"Sunset Crater Volcano National Monument",state:"Arizona",type:"National Monument",desc:"Cinder cone volcano that erupted around 1085 CE.",url:"https://www.nps.gov/sucr",code:"sucr"},
+  {name:"Tallgrass Prairie National Preserve",state:"Kansas",type:"Other",desc:"Rare tallgrass prairie ecosystem.",url:"https://www.nps.gov/tapr",code:"tapr"},
+  {name:"Thaddeus Kosciuszko National Memorial",state:"Pennsylvania",type:"National Memorial",desc:"Memorial to the Polish hero of the American Revolution.",url:"https://www.nps.gov/thko",code:"thko"},
+  {name:"Theodore Roosevelt Inaugural National Historic Site",state:"New York",type:"National Historic Site",desc:"Site of Theodore Roosevelt's inauguration.",url:"https://www.nps.gov/thri",code:"thri"},
+  {name:"Theodore Roosevelt Island",state:"District of Columbia",type:"National Memorial",desc:"Island memorial to the conservation president.",url:"https://www.nps.gov/this",code:"this"},
+  {name:"Theodore Roosevelt National Park",state:"North Dakota",type:"National Park",desc:"Badlands of the Little Missouri River where TR ranched.",url:"https://www.nps.gov/thro",code:"thro"},
+  {name:"Thomas Edison National Historical Park",state:"New Jersey",type:"Other",desc:"Home and laboratory where Edison made many inventions.",url:"https://www.nps.gov/edis",code:"edis2"},
+  {name:"Thomas Jefferson Memorial",state:"District of Columbia",type:"National Memorial",desc:"Memorial to the principal author of the Declaration of Independence.",url:"https://www.nps.gov/thje",code:"thje"},
+  {name:"Thomas Stone National Historic Site",state:"Maryland",type:"National Historic Site",desc:"Home of a signer of the Declaration of Independence.",url:"https://www.nps.gov/thst",code:"thst"},
+  {name:"Timpanogos Cave National Monument",state:"Utah",type:"National Monument",desc:"Stunning cave with helictites and cave formation.",url:"https://www.nps.gov/tica",code:"tica"},
+  {name:"Timucuan Ecological and Historic Preserve",state:"Florida",type:"Other",desc:"Sea islands and tidal marshes with 6,000 years of human history.",url:"https://www.nps.gov/timu",code:"timu"},
+  {name:"Tonto National Monument",state:"Arizona",type:"National Monument",desc:"Salado people cliff dwellings in the Sonoran Desert.",url:"https://www.nps.gov/tont",code:"tont"},
+  {name:"Touro Synagogue National Historic Site",state:"Rhode Island",type:"National Historic Site",desc:"Oldest surviving Jewish house of worship in the U.S.",url:"https://www.nps.gov/tosy",code:"tosy"},
+  {name:"Tumacácori National Historical Park",state:"Arizona",type:"Other",desc:"Spanish Colonial mission ruins in the Santa Cruz River valley.",url:"https://www.nps.gov/tuma",code:"tuma"},
+  {name:"Tule Springs Fossil Beds National Monument",state:"Nevada",type:"National Monument",desc:"Ice Age fossils of mammoths, camels, and ground sloths.",url:"https://www.nps.gov/tusk",code:"tusk"},
+  {name:"Tuskegee Airmen National Historic Site",state:"Alabama",type:"National Historic Site",desc:"Training site of the first Black military airmen.",url:"https://www.nps.gov/tuai",code:"tuai"},
+  {name:"Tuskegee Institute National Historic Site",state:"Alabama",type:"National Historic Site",desc:"Legacy of Booker T. Washington and Tuskegee University.",url:"https://www.nps.gov/tuin",code:"tuin"},
+  {name:"Tuzigoot National Monument",state:"Arizona",type:"National Monument",desc:"Ruins of a Sinagua Indian village.",url:"https://www.nps.gov/tuzi",code:"tuzi"},
+  {name:"Ulysses S. Grant National Historic Site",state:"Missouri",type:"National Historic Site",desc:"Home of the 18th President and Civil War general.",url:"https://www.nps.gov/ulsg",code:"ulsg"},
+  {name:"Upper Delaware Scenic and Recreational River",state:"New York",type:"Other",desc:"Scenic stretch of the Delaware River with historic sites.",url:"https://www.nps.gov/upde",code:"upde"},
+  {name:"Valles Caldera National Preserve",state:"New Mexico",type:"Other",desc:"Ancient volcanic caldera on the Pajarito Plateau.",url:"https://www.nps.gov/vall",code:"vall"},
+  {name:"Valley Forge National Historical Park",state:"Pennsylvania",type:"Other",desc:"Winter encampment of Washington's Continental Army.",url:"https://www.nps.gov/vafo",code:"vafo"},
+  {name:"Vietnam Veterans Memorial",state:"District of Columbia",type:"National Memorial",desc:"Memorial honoring those who served in the Vietnam War.",url:"https://www.nps.gov/vive",code:"vive"},
+  {name:"Virgin Islands National Park",state:"Virgin Islands",type:"National Park",desc:"Tropical beaches and coral reefs of St. John.",url:"https://www.nps.gov/viis",code:"viis"},
+  {name:"Vicksburg National Military Park",state:"Mississippi",type:"National Battlefield",desc:"Siege that gave the Union control of the Mississippi River.",url:"https://www.nps.gov/vick",code:"vick"},
+  {name:"Voyageurs National Park",state:"Minnesota",type:"National Park",desc:"A water-based park of interconnected lakes.",url:"https://www.nps.gov/voya",code:"voya"},
+  {name:"Walnut Canyon National Monument",state:"Arizona",type:"National Monument",desc:"Sinagua Indian cliff dwellings in a limestone canyon.",url:"https://www.nps.gov/waca",code:"waca"},
+  {name:"War in the Pacific National Historical Park",state:"Guam",type:"Other",desc:"Commemorating WWII battles in the Pacific.",url:"https://www.nps.gov/wapa",code:"wapa"},
+  {name:"Washington Monument",state:"District of Columbia",type:"National Memorial",desc:"Towering obelisk honoring the first President.",url:"https://www.nps.gov/wamo",code:"wamo"},
+  {name:"Washita Battlefield National Historic Site",state:"Oklahoma",type:"National Historic Site",desc:"Site of the 1868 Battle of the Washita.",url:"https://www.nps.gov/waba",code:"waba"},
+  {name:"Weir Farm National Historical Park",state:"Connecticut",type:"Other",desc:"Country retreat of American Impressionist painter J. Alden Weir.",url:"https://www.nps.gov/wefa",code:"wefa"},
+  {name:"White Sands National Park",state:"New Mexico",type:"National Park",desc:"World's largest gypsum dune field.",url:"https://www.nps.gov/whsa",code:"whsa"},
+  {name:"Whitman Mission National Historic Site",state:"Washington",type:"National Historic Site",desc:"Mission and grave of the Whitman missionaries.",url:"https://www.nps.gov/whmi",code:"whmi"},
+  {name:"William Howard Taft National Historic Site",state:"Ohio",type:"National Historic Site",desc:"Birthplace of the 27th President and Chief Justice.",url:"https://www.nps.gov/wiho",code:"wiho"},
+  {name:"Wilson's Creek National Battlefield",state:"Missouri",type:"National Battlefield",desc:"First major Civil War battle west of the Mississippi.",url:"https://www.nps.gov/wicr",code:"wicr"},
+  {name:"Wind Cave National Park",state:"South Dakota",type:"National Park",desc:"One of the world's longest and most complex caves.",url:"https://www.nps.gov/wica",code:"wica"},
+  {name:"Wolf Trap National Park for the Performing Arts",state:"Virginia",type:"National Park",desc:"Only national park for the performing arts.",url:"https://www.nps.gov/wotr",code:"wotr"},
+  {name:"Women's Rights National Historical Park",state:"New York",type:"Other",desc:"Birthplace of the women's rights movement.",url:"https://www.nps.gov/wori",code:"wori"},
+  {name:"World War I Memorial",state:"District of Columbia",type:"National Memorial",desc:"National memorial honoring American WWI soldiers.",url:"https://www.nps.gov/wwim",code:"wwim"},
+  {name:"World War II Memorial",state:"District of Columbia",type:"National Memorial",desc:"Honoring the 16 million Americans who served in WWII.",url:"https://www.nps.gov/wwii",code:"wwii"},
+  {name:"Wrangell-St. Elias National Park and Preserve",state:"Alaska",type:"National Park",desc:"Largest national park—bigger than the state of California.",url:"https://www.nps.gov/wrst",code:"wrst"},
+  {name:"Wright Brothers National Memorial",state:"North Carolina",type:"National Memorial",desc:"Site of the first successful powered airplane flight.",url:"https://www.nps.gov/wrbr",code:"wrbr"},
+  {name:"Wupatki National Monument",state:"Arizona",type:"National Monument",desc:"Red-rock ruins of ancestral Puebloan communities.",url:"https://www.nps.gov/wupa",code:"wupa"},
+  {name:"Yellowstone National Park",state:"Wyoming",type:"National Park",desc:"World's first national park with geothermal wonders.",url:"https://www.nps.gov/yell",code:"yell"},
+  {name:"Yosemite National Park",state:"California",type:"National Park",desc:"Iconic granite cliffs, waterfalls, and giant sequoias.",url:"https://www.nps.gov/yose",code:"yose"},
+  {name:"Yukon-Charley Rivers National Preserve",state:"Alaska",type:"Other",desc:"Protecting significant portions of the Yukon River.",url:"https://www.nps.gov/yuch",code:"yuch"},
+  {name:"Zion National Park",state:"Utah",type:"National Park",desc:"Towering cliffs, narrow canyons, and diverse wildlife.",url:"https://www.nps.gov/zion",code:"zion"},
+];
+
+// ========== STATE ==========
+let parks = [];
+let currentView = 'all';
+let filterState = '';
+let filterType = '';
+let sortBy = 'name';
+let searchQ = '';
+let editingId = null;
+let pendingVisitId = null;
+
+const LS_KEY = 'nps_park_tracker_v1';
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) {
+      parks = JSON.parse(saved);
+    } else {
+      parks = SEED_PARKS.map((p, i) => ({
+        ...p,
+        id: 'p_' + i + '_' + Date.now(),
+        visited: false,
+        visitedDate: '',
+        notes: '',
+        custom: false
+      }));
+      saveData();
+    }
+  } catch(e) {
+    parks = [];
+  }
+}
+
+function saveData() {
+  localStorage.setItem(LS_KEY, JSON.stringify(parks));
+}
+
+// ========== RENDER ==========
+function getFiltered() {
+  let list = [...parks];
+  if (filterState) list = list.filter(p => p.state === filterState);
+  if (filterType) list = list.filter(p => p.type === filterType);
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    list = list.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.state.toLowerCase().includes(q) ||
+      p.type.toLowerCase().includes(q) ||
+      (p.desc||'').toLowerCase().includes(q)
+    );
+  }
+  if (currentView === 'visited') list = list.filter(p => p.visited);
+  if (currentView === 'unvisited') list = list.filter(p => !p.visited);
+
+  list.sort((a, b) => {
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    if (sortBy === 'state') return a.state.localeCompare(b.state) || a.name.localeCompare(b.name);
+    if (sortBy === 'type') return a.type.localeCompare(b.type) || a.name.localeCompare(b.name);
+    if (sortBy === 'visited') return (b.visited ? 1 : 0) - (a.visited ? 1 : 0) || a.name.localeCompare(b.name);
+    return 0;
+  });
+  return list;
+}
+
+function renderStats() {
+  const total = parks.length;
+  const visited = parks.filter(p => p.visited).length;
+  const pct = total > 0 ? Math.round((visited / total) * 100) : 0;
+  document.getElementById('stat-visited').textContent = visited;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+}
+
+function renderStateList() {
+  const stateMap = {};
+  parks.forEach(p => {
+    if (!stateMap[p.state]) stateMap[p.state] = {total:0, visited:0};
+    stateMap[p.state].total++;
+    if (p.visited) stateMap[p.state].visited++;
+  });
+  const states = Object.keys(stateMap).sort();
+  const html = ['<div class="state-item' + (!filterState ? ' active' : '') + '" onclick="setStateFilter(\'\')"><span>All States</span><span class="badge badge-total">' + parks.length + '</span></div>'];
+  states.forEach(s => {
+    const d = stateMap[s];
+    const active = filterState === s ? ' active' : '';
+    html.push(`<div class="state-item${active}" onclick="setStateFilter('${s.replace(/'/g,"\\'")}')">
+      <span>${s}</span>
+      <span class="state-badge">
+        ${d.visited > 0 ? `<span class="badge badge-visited">${d.visited}✓</span>` : ''}
+        <span class="badge badge-total">${d.total}</span>
+      </span>
+    </div>`);
+  });
+  document.getElementById('state-list').innerHTML = html.join('');
+}
+
+function renderMapView() {
+  const stateMap = {};
+  parks.forEach(p => {
+    if (!stateMap[p.state]) stateMap[p.state] = {total:0, visited:0};
+    stateMap[p.state].total++;
+    if (p.visited) stateMap[p.state].visited++;
+  });
+  const html = Object.keys(stateMap).sort().map(s => {
+    const d = stateMap[s];
+    const pct = d.total > 0 ? Math.round((d.visited/d.total)*100) : 0;
+    let cls = '';
+    if (d.visited > 0 && d.visited < d.total) cls = 'has-visited';
+    if (d.visited === d.total && d.total > 0) cls = 'all-visited';
+    return `<div class="state-map-card ${cls}" onclick="setStateFilter('${s.replace(/'/g,"\\'")}');setView('all')">
+      <div class="state-map-name">${s}</div>
+      <div class="state-map-count">${d.visited}/${d.total} visited</div>
+      <div class="state-map-bar"><div class="state-map-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('map-states-grid').innerHTML = html;
+}
+
+function renderGrid() {
+  const list = getFiltered();
+  const grid = document.getElementById('parks-grid');
+  const empty = document.getElementById('empty-state');
+
+  const stateLabel = filterState ? filterState : 'All States';
+  const typeLabel = filterType ? filterType : '';
+  const viewLabel = currentView === 'visited' ? 'Visited Parks' : currentView === 'unvisited' ? 'Bucket List' : 'All Parks';
+
+  document.getElementById('view-title').textContent =
+    filterState ? `${filterState} Parks` : viewLabel;
+  document.getElementById('view-subtitle').textContent =
+    `${list.length} site${list.length !== 1 ? 's' : ''} ${typeLabel ? '· ' + typeLabel : ''} ${searchQ ? '· matching "' + searchQ + '"' : ''}`;
+
+  if (list.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = list.map(p => {
+    const icon = TYPE_ICONS[p.type] || '📍';
+    const tc = TYPE_CLASS[p.type] || 'other';
+    const vc = p.visited ? ' visited' : '';
+    const checkTxt = p.visited ? '✓' : '';
+    const dateStr = p.visitedDate ? `<span class="visited-date">Visited ${p.visitedDate}</span>` : '';
+    const urlBtn = p.url ? `<a href="${p.url}" target="_blank" class="btn btn-sm btn-outline" style="border-color:rgba(26,58,42,0.2);color:var(--stone);">NPS ↗</a>` : '';
+    return `<div class="park-card${vc}" id="card-${p.id}">
+      <div class="card-top">
+        <div class="card-type-icon ${tc}">${icon}</div>
+        <div class="card-info">
+          <div class="card-name">${p.name}</div>
+          <div class="card-meta">
+            <span class="type-tag">${p.type}</span>
+            <span>${p.state}</span>
+          </div>
+        </div>
+        <button class="visited-check" onclick="toggleVisit('${p.id}')" title="${p.visited ? 'Mark unvisited' : 'Mark visited'}">${checkTxt}</button>
+      </div>
+      ${p.desc ? `<div class="card-body">${p.desc}</div>` : ''}
+      <div class="card-footer">
+        ${urlBtn}
+        ${dateStr}
+        <button class="btn btn-sm btn-outline" onclick="openEditModal('${p.id}')" style="border-color:rgba(26,58,42,0.2);color:var(--stone);margin-left:auto;">Edit</button>
+        <button class="btn btn-sm" onclick="deletePark('${p.id}')" style="background:transparent;color:#c0392b;border:1px solid rgba(192,57,43,0.2);padding:5px 10px;font-size:11px;">Del</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAll() {
+  renderStats();
+  renderStateList();
+  renderGrid();
+  if (currentView === 'map') renderMapView();
+}
+
+// ========== ACTIONS ==========
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event && event.target && event.target.classList.add('active');
+  const listView = document.getElementById('list-view');
+  const mapView = document.getElementById('map-view');
+  if (v === 'map') {
+    listView.style.display = 'none';
+    mapView.style.display = 'block';
+    renderMapView();
+  } else {
+    listView.style.display = 'block';
+    mapView.style.display = 'none';
+    renderGrid();
+  }
+  // Highlight correct tab
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const txt = b.textContent.trim();
+    b.classList.remove('active');
+    if ((v === 'all' && txt === 'All Parks') ||
+        (v === 'visited' && txt === 'Visited') ||
+        (v === 'unvisited' && txt === 'Bucket List') ||
+        (v === 'map' && txt.includes('Map'))) {
+      b.classList.add('active');
+    }
+  });
+}
+
+function setStateFilter(s) {
+  filterState = s;
+  if (currentView === 'map') setView('all');
+  renderAll();
+}
+
+function setSortBy(v) { sortBy = v; renderGrid(); }
+
+document.getElementById('search-input').addEventListener('input', function() {
+  searchQ = this.value.trim();
+  renderGrid();
+});
+
+document.getElementById('type-filter').addEventListener('change', function() {
+  filterType = this.value;
+  renderGrid();
+  renderStateList();
+});
+
+function toggleVisit(id) {
+  const p = parks.find(x => x.id === id);
+  if (!p) return;
+  if (p.visited) {
+    p.visited = false;
+    p.visitedDate = '';
+    saveData();
+    renderAll();
+    toast('Marked as not visited', 'success');
+  } else {
+    pendingVisitId = id;
+    document.getElementById('visit-park-name').textContent = p.name;
+    document.getElementById('visit-date-input').value = new Date().toISOString().split('T')[0];
+    document.getElementById('visit-notes-input').value = '';
+    document.getElementById('visit-modal').classList.add('open');
+  }
+}
+
+function confirmVisit() {
+  const p = parks.find(x => x.id === pendingVisitId);
+  if (!p) return;
+  p.visited = true;
+  p.visitedDate = document.getElementById('visit-date-input').value;
+  p.notes = document.getElementById('visit-notes-input').value;
+  saveData();
+  closeVisitModal();
+  renderAll();
+  toast('🎉 ' + p.name + ' marked visited!', 'success');
+}
+
+function closeVisitModal() {
+  document.getElementById('visit-modal').classList.remove('open');
+  pendingVisitId = null;
+}
+
+function deletePark(id) {
+  if (!confirm('Delete this park entry?')) return;
+  parks = parks.filter(p => p.id !== id);
+  saveData();
+  renderAll();
+  toast('Park deleted');
+}
+
+// ========== MODAL ==========
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title-text').textContent = 'Add New Park';
+  document.getElementById('edit-park-id').value = '';
+  document.getElementById('park-name-input').value = '';
+  document.getElementById('park-state-input').value = filterState || '';
+  document.getElementById('park-type-input').value = 'National Park';
+  document.getElementById('park-desc-input').value = '';
+  document.getElementById('park-url-input').value = '';
+  document.getElementById('park-code-input').value = '';
+  document.getElementById('park-visited-check').checked = false;
+  document.getElementById('visit-date-row').style.display = 'none';
+  document.getElementById('park-date-input').value = '';
+  document.getElementById('park-notes-input').value = '';
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const p = parks.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('modal-title-text').textContent = 'Edit Park';
+  document.getElementById('edit-park-id').value = id;
+  document.getElementById('park-name-input').value = p.name;
+  document.getElementById('park-state-input').value = p.state;
+  document.getElementById('park-type-input').value = p.type;
+  document.getElementById('park-desc-input').value = p.desc || '';
+  document.getElementById('park-url-input').value = p.url || '';
+  document.getElementById('park-code-input').value = p.code || '';
+  document.getElementById('park-visited-check').checked = p.visited;
+  if (p.visited) {
+    document.getElementById('visit-date-row').style.display = 'grid';
+    document.getElementById('park-date-input').value = p.visitedDate || '';
+    document.getElementById('park-notes-input').value = p.notes || '';
+  } else {
+    document.getElementById('visit-date-row').style.display = 'none';
+  }
+  document.getElementById('add-modal').classList.add('open');
+}
+
+document.getElementById('park-visited-check').addEventListener('change', function() {
+  document.getElementById('visit-date-row').style.display = this.checked ? 'grid' : 'none';
+  if (this.checked) document.getElementById('park-date-input').value = new Date().toISOString().split('T')[0];
+});
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.remove('open');
+  editingId = null;
+}
+
+function savePark() {
+  const name = document.getElementById('park-name-input').value.trim();
+  const state = document.getElementById('park-state-input').value;
+  const type = document.getElementById('park-type-input').value;
+  if (!name || !state) { toast('Please fill in required fields', 'error'); return; }
+
+  const visited = document.getElementById('park-visited-check').checked;
+  const visitedDate = visited ? document.getElementById('park-date-input').value : '';
+  const notes = visited ? document.getElementById('park-notes-input').value : '';
+
+  if (editingId) {
+    const idx = parks.findIndex(p => p.id === editingId);
+    if (idx >= 0) {
+      parks[idx] = { ...parks[idx], name, state, type,
+        desc: document.getElementById('park-desc-input').value.trim(),
+        url: document.getElementById('park-url-input').value.trim(),
+        code: document.getElementById('park-code-input').value.trim().toLowerCase(),
+        visited, visitedDate, notes
+      };
+    }
+    toast('Park updated!', 'success');
+  } else {
+    parks.push({
+      id: 'p_custom_' + Date.now(),
+      name, state, type,
+      desc: document.getElementById('park-desc-input').value.trim(),
+      url: document.getElementById('park-url-input').value.trim(),
+      code: document.getElementById('park-code-input').value.trim().toLowerCase(),
+      visited, visitedDate, notes, custom: true
+    });
+    toast('Park added!', 'success');
+  }
+  saveData();
+  closeAddModal();
+  renderAll();
+}
+
+// ========== DOWNLOAD ==========
+function openDownload() {
+  setView('map');
+  document.getElementById('dl-section').style.display = 'block';
+  const visited = parks.filter(p => p.visited);
+  const total = parks.length;
+  const opts = [
+    {icon:'📄', label:'Export All Parks (CSV)', fn:'exportCSV("all")'},
+    {icon:'✅', label:`Export Visited Parks (CSV) — ${visited.length} parks`, fn:'exportCSV("visited")'},
+    {icon:'📋', label:'Export as Text Summary', fn:'exportText()'},
+    {icon:'🖨', label:'Print Tracker', fn:'window.print()'},
+  ];
+  document.getElementById('dl-options').innerHTML = opts.map(o =>
+    `<button class="dl-option" onclick="${o.fn}"><span class="icon">${o.icon}</span>${o.label}</button>`
+  ).join('');
+}
+
+function exportCSV(mode) {
+  const list = mode === 'visited' ? parks.filter(p => p.visited) : parks;
+  const rows = [['Name','State','Type','Visited','Date Visited','Notes','NPS URL']];
+  list.forEach(p => rows.push([
+    `"${p.name}"`, `"${p.state}"`, `"${p.type}"`,
+    p.visited ? 'Yes' : 'No',
+    p.visitedDate || '', `"${(p.notes||'').replace(/"/g,'""')}"`,
+    p.url || ''
+  ]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  download('nps_parks_' + mode + '.csv', csv, 'text/csv');
+  toast('CSV downloaded!', 'success');
+}
+
+function exportText() {
+  const visited = parks.filter(p => p.visited);
+  const byState = {};
+  visited.forEach(p => {
+    if (!byState[p.state]) byState[p.state] = [];
+    byState[p.state].push(p);
+  });
+  let txt = `NPS PARK TRACKER — ${new Date().toLocaleDateString()}\n`;
+  txt += `Visited: ${visited.length} / ${parks.length} sites\n\n`;
+  Object.keys(byState).sort().forEach(s => {
+    txt += `${s.toUpperCase()}\n`;
+    byState[s].forEach(p => txt += `  ✓ ${p.name}${p.visitedDate ? ' (' + p.visitedDate + ')' : ''}\n`);
+    txt += '\n';
+  });
+  download('nps_tracker_summary.txt', txt, 'text/plain');
+  toast('Text summary downloaded!', 'success');
+}
+
+function download(filename, content, type) {
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ========== TOAST ==========
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ========== CLOSE MODALS ON OVERLAY CLICK ==========
+document.getElementById('add-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddModal();
+});
+document.getElementById('visit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeVisitModal();
+});
+
+// ========== INIT STATE SELECT ==========
+function initStateSelect() {
+  const sel = document.getElementById('park-state-input');
+  ALL_STATES.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+}
+
+// ========== BOOT ==========
+initStateSelect();
+loadData();
+renderAll();
+</script>
+</body>
+</html>
