@@ -776,6 +776,7 @@
       </div>
       <button class="btn btn-gold" onclick="openAddModal()">＋ Add Park</button>
       <button class="btn btn-outline" onclick="openDownload()">⬇ Export</button>
+      <button class="btn btn-outline" onclick="triggerImportJSON()" title="Import your saved JSON backup">⬆ Import JSON</button>
     </div>
   </div>
 </header>
@@ -815,7 +816,10 @@
       <div class="view-header">
         <div>
           <h2 class="view-title">Map View</h2>
-          <div class="view-subtitle">Click a state to filter parks</div>
+          <div class="view-subtitle">Click a state card to open its map • Green = visited</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-gold" onclick="openUSMap()">🗺 Open US Map</button>
         </div>
       </div>
       <div class="us-map-container">
@@ -932,6 +936,39 @@
     </div>
   </div>
 </div>
+
+<!-- SVG MAP MODAL -->
+<div class="modal-overlay" id="map-modal" style="z-index:300;">
+  <div class="modal" style="max-width:920px;width:96vw;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <h3 class="modal-title" id="map-modal-title">🗺 Park Map</h3>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="map-state-select" onchange="changeMapState(this.value)" style="padding:6px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,0.12);color:white;">
+          <option value="US">🇺🇸 United States</option>
+        </select>
+        <button class="btn btn-sm btn-outline" onclick="resetMarkerPositions()" title="Reset markers to default" style="font-size:11px;">↺ Reset</button>
+        <button class="modal-close" onclick="closeMapModal()">×</button>
+      </div>
+    </div>
+    <div style="padding:8px 16px;flex-shrink:0;background:rgba(26,58,42,0.04);border-bottom:1px solid rgba(26,58,42,0.08);">
+      <p style="font-size:12px;color:var(--stone);margin:0;">🟢 Visited &nbsp;⚫ Not visited &nbsp;· Drag markers to reposition · Hover for park name</p>
+    </div>
+    <div class="modal-body" style="padding:12px;flex:1;overflow:hidden;">
+      <div id="svg-map-container" style="width:100%;height:100%;min-height:380px;background:#eef2f7;border-radius:8px;border:1px solid rgba(26,58,42,0.1);overflow:hidden;position:relative;cursor:default;">
+        <svg id="park-map-svg" width="100%" height="100%" style="display:block;"></svg>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-shrink:0;">
+      <button class="btn btn-outline" onclick="closeMapModal()" style="border-color:rgba(26,58,42,0.2);color:var(--stone);">Close</button>
+      <button class="btn btn-gold" onclick="downloadMapAsSVG()">⬇ Download SVG</button>
+    </div>
+  </div>
+</div>
+<div id="map-tooltip" style="display:none;position:fixed;background:rgba(26,58,42,0.92);color:white;padding:5px 11px;border-radius:6px;font-size:12px;pointer-events:none;z-index:9999;max-width:220px;text-align:center;line-height:1.4;"></div>
+
+<!-- JSON IMPORT INPUT (hidden) -->
+<input type="file" id="json-import-input" accept=".json" style="display:none;" onchange="importJSON(event)">
+
 
 <div class="toast" id="toast"></div>
 
@@ -1311,23 +1348,113 @@ let sortBy = 'name';
 let searchQ = '';
 let editingId = null;
 let pendingVisitId = null;
+let markerPositions = {};
 
 const LS_KEY = 'nps_park_tracker_v1';
+
+// Pre-visited data from summary txt (injected at build time)
+const PRE_VISITED = {
+  "Canyon de Chelly National Monument": "2022-04-09",
+  "Casa Grande Ruins National Monument": "2022-04-12",
+  "Chiricahua National Monument": "2022-04-14",
+  "Coronado National Memorial": "2022-04-14",
+  "Fort Bowie National Historic Site": "2022-04-14",
+  "Grand Canyon National Park": "2022-04-11",
+  "Hubbell Trading Post National Historic Site": "2022-04-10",
+  "Montezuma Castle National Monument": "2022-04-12",
+  "Navajo National Monument": "2022-04-09",
+  "Organ Pipe Cactus National Monument": "2022-04-13",
+  "Petrified Forest National Park": "2022-04-10",
+  "Pipe Spring National Monument": "2019-06-15",
+  "Saguaro National Park": "2022-04-13",
+  "Sunset Crater Volcano National Monument": "2022-04-11",
+  "Tonto National Monument": "2022-04-12",
+  "Tumacácori National Historical Park": "2022-04-13",
+  "Tuzigoot National Monument": "2022-04-11",
+  "Walnut Canyon National Monument": "2022-04-10",
+  "Wupatki National Monument": "2022-04-11",
+  "Lassen Volcanic National Park": "2023-08-03",
+  "Redwood National and State Parks": "2023-08-04",
+  "Black Canyon of the Gunnison National Park": "2019-06-29",
+  "Colorado National Monument": "2019-06-29",
+  "Curecanti National Recreation Area": "2019-06-29",
+  "Dinosaur National Monument": "2019-06-03",
+  "Florissant Fossil Beds National Monument": "2022-07-28",
+  "Mesa Verde National Park": "2018-07-27",
+  "Sand Creek Massacre National Historic Site": "2022-07-30",
+  "City of Rocks National Reserve": "2019-06-22",
+  "Craters of the Moon National Monument": "2019-09-01",
+  "Nez Perce National Historical Park": "2025-07-06",
+  "Hagerman Fossil Beds National Monument": "2019-09-01",
+  "Minidoka National Historic Site": "2019-09-01",
+  "Indiana Dunes National Park": "2022-07-09",
+  "Big Hole National Battlefield": "2024-06-29",
+  "Bighorn Canyon National Recreation Area": "2019-07-06",
+  "Glacier National Park": "2024-06-25",
+  "Grant-Kohrs Ranch National Historic Site": "2024-06-24",
+  "Little Bighorn Battlefield National Monument": "2019-07-06",
+  "Agate Fossil Beds National Monument": "2019-07-04",
+  "Scotts Bluff National Monument": "2019-07-04",
+  "Great Basin National Park": "2025-04-13",
+  "Aztec Ruins National Monument": "2019-04-02",
+  "Carlsbad Caverns National Park": "2019-04-05",
+  "Chaco Culture National Historical Park": "2022-04-15",
+  "El Malpais National Monument": "2022-04-15",
+  "El Morro National Monument": "2022-04-15",
+  "Petroglyph National Monument": "2019-04-06",
+  "Lewis & Clark National Historical Park": "2025-07-15",
+  "Badlands National Park": "2019-07-05",
+  "Jewel Cave National Monument": "2019-07-05",
+  "Mount Rushmore National Memorial": "2019-07-05",
+  "Wind Cave National Park": "2019-07-04",
+  "Minuteman Missile National Historic Site": "2019-07-05",
+  "Guadalupe Mountains National Park": "2019-04-05",
+  "Arches National Park": "2018-07-29",
+  "Bryce Canyon National Park": "2019-06-15",
+  "Canyonlands National Park": "2019-06-09",
+  "Capitol Reef National Park": "2019-06-16",
+  "Cedar Breaks National Monument": "2019-06-14",
+  "Golden Spike National Historical Park": "2019-06-22",
+  "Hovenweep National Monument": "2019-09-14",
+  "Natural Bridges National Monument": "2019-09-14",
+  "Rainbow Bridge National Monument": "2015-09-15",
+  "Timpanogos Cave National Monument": "2024-06-30",
+  "Zion National Park": "2019-06-14",
+  "Ebey's Landing National Historical Reserve": "2025-07-10",
+  "Fort Vancouver National Historic Site": "2025-07-15",
+  "Mount Rainier National Park": "2025-07-13",
+  "North Cascades National Park": "2025-07-08",
+  "Olympic National Park": "2025-07-11",
+  "Whitman Mission National Historic Site": "2025-07-16",
+  "Devils Tower National Monument": "2019-07-06",
+  "Fort Laramie National Historic Site": "2019-07-04",
+  "Fossil Butte National Monument": "2019-06-02",
+  "Grand Teton National Park": "2024-06-22",
+  "Yellowstone National Park": "2024-06-23",
+  "John D. Rockefeller, Jr. Memorial PKWY": "2024-06-22",
+};
 
 function loadData() {
   try {
     const saved = localStorage.getItem(LS_KEY);
     if (saved) {
-      parks = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      parks = parsed;
+      // Also try to restore markerPositions
+      const savedMarkers = localStorage.getItem(LS_KEY + '_markers');
+      if (savedMarkers) markerPositions = JSON.parse(savedMarkers);
     } else {
-      parks = SEED_PARKS.map((p, i) => ({
-        ...p,
-        id: 'p_' + i + '_' + Date.now(),
-        visited: false,
-        visitedDate: '',
-        notes: '',
-        custom: false
-      }));
+      parks = SEED_PARKS.map((p, i) => {
+        const visitDate = PRE_VISITED[p.name];
+        return {
+          ...p,
+          id: 'p_' + i + '_' + Date.now(),
+          visited: !!visitDate,
+          visitedDate: visitDate || '',
+          notes: '',
+          custom: false
+        };
+      });
       saveData();
     }
   } catch(e) {
@@ -1337,6 +1464,7 @@ function loadData() {
 
 function saveData() {
   localStorage.setItem(LS_KEY, JSON.stringify(parks));
+  localStorage.setItem(LS_KEY + '_markers', JSON.stringify(markerPositions));
 }
 
 // ========== RENDER ==========
@@ -1412,13 +1540,17 @@ function renderMapView() {
     let cls = '';
     if (d.visited > 0 && d.visited < d.total) cls = 'has-visited';
     if (d.visited === d.total && d.total > 0) cls = 'all-visited';
+    const hasParkCoords = parks.filter(p => p.state === s && PARK_COORDS[p.name]).length > 0;
+    const mapBtn = hasParkCoords ? `<button class="btn btn-sm" onclick="event.stopPropagation();openStateMap('${s.replace(/'/g,"\\'")}');" style="margin-top:6px;background:var(--sky);color:white;border:none;font-size:10px;padding:3px 8px;border-radius:4px;">🗺 Map</button>` : '';
     return `<div class="state-map-card ${cls}" onclick="setStateFilter('${s.replace(/'/g,"\\'")}');setView('all')">
       <div class="state-map-name">${s}</div>
       <div class="state-map-count">${d.visited}/${d.total} visited</div>
       <div class="state-map-bar"><div class="state-map-fill" style="width:${pct}%"></div></div>
+      ${mapBtn}
     </div>`;
   }).join('');
   document.getElementById('map-states-grid').innerHTML = html;
+  populateMapStateSelect();
 }
 
 function renderGrid() {
@@ -1658,6 +1790,549 @@ function savePark() {
   renderAll();
 }
 
+// ========== JSON IMPORT / EXPORT ==========
+function exportJSON() {
+  const exportData = {
+    version: 2,
+    exportDate: new Date().toISOString(),
+    markerPositions: markerPositions,
+    parks: parks
+  };
+  download('nps_tracker_backup.json', JSON.stringify(exportData, null, 2), 'application/json');
+  toast('JSON backup downloaded!', 'success');
+}
+
+function triggerImportJSON() {
+  document.getElementById('json-import-input').click();
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.parks && Array.isArray(data.parks)) {
+        parks = data.parks;
+        if (data.markerPositions) markerPositions = data.markerPositions;
+        saveData();
+        renderAll();
+        toast('✅ JSON imported successfully! ' + parks.length + ' parks loaded.', 'success');
+      } else {
+        toast('Invalid JSON format — no parks array found.', 'error');
+      }
+    } catch(err) {
+      toast('Failed to parse JSON file.', 'error');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ========== SVG MAP SYSTEM ==========
+// Stores custom marker positions: { "parkId_mapKey": {cx, cy} }
+let currentMapState = 'US';
+let dragState = null;
+
+// Approximate lat/lon for known parks (will be projected to SVG coords)
+const PARK_COORDS = {
+  // Arizona
+  "Canyon de Chelly National Monument": [36.14, -109.47],
+  "Casa Grande Ruins National Monument": [32.99, -111.53],
+  "Chiricahua National Monument": [32.01, -109.34],
+  "Coronado National Memorial": [31.35, -110.26],
+  "Fort Bowie National Historic Site": [32.15, -109.44],
+  "Grand Canyon National Park": [36.06, -112.14],
+  "Hubbell Trading Post National Historic Site": [35.71, -109.57],
+  "Montezuma Castle National Monument": [34.61, -111.84],
+  "Navajo National Monument": [36.72, -110.54],
+  "Organ Pipe Cactus National Monument": [32.0, -112.87],
+  "Petrified Forest National Park": [34.91, -109.89],
+  "Pipe Spring National Monument": [36.86, -112.73],
+  "Saguaro National Park": [32.25, -110.73],
+  "Sunset Crater Volcano National Monument": [35.37, -111.5],
+  "Tonto National Monument": [33.65, -111.11],
+  "Tumacácori National Historical Park": [31.57, -111.05],
+  "Tuzigoot National Monument": [34.77, -112.03],
+  "Walnut Canyon National Monument": [35.17, -111.51],
+  "Wupatki National Monument": [35.52, -111.37],
+  // California
+  "Lassen Volcanic National Park": [40.49, -121.51],
+  "Redwood National and State Parks": [41.3, -124.0],
+  "Whiskeytown NRA": [40.62, -122.61],
+  "Channel Islands National Park": [34.01, -119.77],
+  "Death Valley National Park": [36.24, -116.82],
+  "Joshua Tree National Park": [33.88, -115.9],
+  "Kings Canyon National Park": [36.89, -118.56],
+  "Sequoia National Park": [36.48, -118.57],
+  "Yosemite National Park": [37.87, -119.54],
+  "Point Reyes National Seashore": [38.1, -122.88],
+  // Colorado
+  "Black Canyon of the Gunnison National Park": [38.57, -107.72],
+  "Colorado National Monument": [39.06, -108.7],
+  "Curecanti National Recreation Area": [38.47, -107.33],
+  "Dinosaur National Monument": [40.44, -108.98],
+  "Florissant Fossil Beds National Monument": [38.91, -105.28],
+  "Mesa Verde National Park": [37.18, -108.49],
+  "Rocky Mountain National Park": [40.34, -105.68],
+  "Sand Creek Massacre National Historic Site": [38.55, -102.52],
+  // Idaho
+  "City of Rocks National Reserve": [42.08, -113.72],
+  "Craters of the Moon National Monument": [43.46, -113.56],
+  "Nez Perce National Historical Park": [46.04, -116.8],
+  "Hagerman Fossil Beds National Monument": [42.78, -114.96],
+  // Indiana
+  "Indiana Dunes National Park": [41.65, -87.06],
+  // Montana
+  "Big Hole National Battlefield": [45.65, -113.64],
+  "Bighorn Canyon National Recreation Area": [45.18, -108.18],
+  "Glacier National Park": [48.7, -113.79],
+  "Grant-Kohrs Ranch National Historic Site": [46.41, -112.73],
+  "Little Bighorn Battlefield National Monument": [45.56, -107.43],
+  // Nebraska
+  "Agate Fossil Beds National Monument": [42.43, -103.73],
+  "Scotts Bluff National Monument": [41.83, -103.71],
+  // Nevada
+  "Great Basin National Park": [38.98, -114.3],
+  // New Mexico
+  "Aztec Ruins National Monument": [36.83, -107.99],
+  "Carlsbad Caverns National Park": [32.17, -104.56],
+  "Chaco Culture National Historical Park": [36.06, -107.96],
+  "El Malpais National Monument": [34.85, -107.98],
+  "El Morro National Monument": [35.04, -108.35],
+  "Petroglyph National Monument": [35.13, -106.74],
+  "White Sands National Park": [32.78, -106.17],
+  // Oregon
+  "Crater Lake National Park": [42.94, -122.1],
+  "Lewis & Clark National Historical Park": [46.25, -123.93],
+  "John Day Fossil Beds National Monument": [44.66, -119.77],
+  // South Dakota
+  "Badlands National Park": [43.85, -102.34],
+  "Jewel Cave National Monument": [43.73, -103.83],
+  "Mount Rushmore National Memorial": [43.88, -103.46],
+  "Wind Cave National Park": [43.56, -103.48],
+  "Minuteman Missile National Historic Site": [43.89, -101.96],
+  // Texas
+  "Guadalupe Mountains National Park": [31.92, -104.87],
+  "Big Bend National Park": [29.25, -103.25],
+  // Utah
+  "Arches National Park": [38.68, -109.57],
+  "Bryce Canyon National Park": [37.57, -112.18],
+  "Canyonlands National Park": [38.2, -109.93],
+  "Capitol Reef National Park": [38.09, -111.15],
+  "Cedar Breaks National Monument": [37.63, -112.83],
+  "Glen Canyon NRA": [37.07, -110.98],
+  "Golden Spike National Historical Park": [41.62, -112.55],
+  "Hovenweep National Monument": [37.38, -109.08],
+  "Natural Bridges National Monument": [37.6, -110.0],
+  "Rainbow Bridge National Monument": [36.99, -110.96],
+  "Timpanogos Cave National Monument": [40.44, -111.71],
+  "Zion National Park": [37.3, -112.98],
+  // Washington
+  "Ebey's Landing National Historical Reserve": [48.2, -122.69],
+  "Fort Vancouver National Historic Site": [45.63, -122.66],
+  "Mount Rainier National Park": [46.85, -121.74],
+  "North Cascades National Park": [48.7, -121.2],
+  "Olympic National Park": [47.8, -123.5],
+  "Whitman Mission National Historic Site": [46.04, -118.46],
+  "Klondike Gold Rush - Seattle Unit NHP": [47.6, -122.33],
+  // Wyoming
+  "Devils Tower National Monument": [44.59, -104.72],
+  "Fort Laramie National Historic Site": [42.21, -104.54],
+  "Fossil Butte National Monument": [41.86, -110.77],
+  "Grand Teton National Park": [43.79, -110.68],
+  "Yellowstone National Park": [44.43, -110.59],
+  "John D. Rockefeller, Jr. Memorial PKWY": [44.1, -110.68],
+};
+
+// Simple Mercator-like projection for continental US
+// viewBox: "0 0 960 600" (standard US map dimensions)
+function latLonToUS(lat, lon) {
+  // Continental US bounds: lat 24-50, lon -125 to -66
+  const minLon = -125, maxLon = -66;
+  const minLat = 24, maxLat = 50;
+  const W = 760, H = 480;
+  const xOff = 100, yOff = 60;
+  const x = ((lon - minLon) / (maxLon - minLon)) * W + xOff;
+  // Flip lat (north is up)
+  const y = ((maxLat - lat) / (maxLat - minLat)) * H + yOff;
+  return [x, y];
+}
+
+// State bounding boxes [minLon, maxLon, minLat, maxLat]
+const STATE_BOUNDS = {
+  "Arizona": [-115.0, -108.9, 31.0, 37.0],
+  "California": [-124.5, -114.1, 32.5, 42.0],
+  "Colorado": [-109.1, -101.9, 36.9, 41.1],
+  "Idaho": [-117.3, -111.0, 41.9, 49.0],
+  "Indiana": [-88.1, -84.7, 37.7, 41.8],
+  "Montana": [-116.1, -104.0, 44.3, 49.0],
+  "Nebraska": [-104.1, -95.3, 40.0, 43.0],
+  "Nevada": [-120.0, -114.0, 35.0, 42.0],
+  "New Mexico": [-109.1, -103.0, 31.3, 37.0],
+  "New York": [-79.8, -71.8, 40.4, 45.1],
+  "Oregon": [-124.6, -116.5, 41.9, 46.3],
+  "South Dakota": [-104.1, -96.4, 42.4, 45.9],
+  "Texas": [-106.7, -93.5, 25.8, 36.5],
+  "Utah": [-114.1, -109.0, 36.9, 42.0],
+  "Washington": [-124.8, -116.9, 45.5, 49.0],
+  "Wyoming": [-111.1, -104.0, 40.9, 45.1],
+};
+
+function latLonToState(lat, lon, state) {
+  const b = STATE_BOUNDS[state];
+  if (!b) return [50, 50]; // fallback center
+  const [minLon, maxLon, minLat, maxLat] = b;
+  const W = 700, H = 450;
+  const pad = 40;
+  const x = ((lon - minLon) / (maxLon - minLon)) * W + pad;
+  const y = ((maxLat - lat) / (maxLat - minLat)) * H + pad;
+  return [x + pad, y + pad]; // extra padding
+}
+
+// Simplified US SVG path (lower 48 outline)
+const US_SVG_PATH = `M 172 52 L 188 48 L 210 40 L 240 32 L 268 28 L 300 26 L 340 24 L 380 25 L 420 26 L 460 28 L 500 30 L 540 32 L 580 34 L 620 36 L 650 38 L 680 42 L 710 48 L 740 55 L 760 65 L 775 75 L 785 90 L 800 105 L 812 120 L 818 138 L 822 155 L 826 175 L 828 195 L 825 215 L 820 235 L 812 255 L 800 270 L 785 285 L 770 298 L 752 310 L 735 320 L 718 328 L 700 335 L 682 340 L 664 344 L 645 347 L 625 350 L 610 360 L 598 375 L 590 395 L 585 415 L 583 435 L 582 455 L 582 470 L 575 475 L 560 472 L 544 465 L 530 458 L 515 450 L 498 445 L 480 442 L 462 440 L 444 440 L 425 442 L 408 446 L 392 452 L 375 460 L 358 468 L 340 474 L 320 478 L 298 480 L 275 478 L 252 472 L 230 462 L 210 450 L 192 435 L 178 418 L 168 400 L 160 380 L 155 358 L 152 335 L 150 310 L 148 285 L 146 258 L 144 230 L 142 202 L 140 174 L 138 148 L 138 122 L 140 98 L 148 76 L 158 60 L 168 52 Z`;
+
+// State outline paths (simplified polygon representations)
+// These are simplified SVG paths for each state in a ~780x520 coordinate space
+const STATE_PATHS = {};
+
+// We use a simple rect+polygon approach per state since full state paths would be huge
+// The map will show a rectangle outline with the state name, and plot parks inside
+
+function openUSMap() {
+  currentMapState = 'US';
+  document.getElementById('map-modal-title').textContent = '🗺 United States — All Parks';
+  document.getElementById('map-modal').classList.add('open');
+  const sel = document.getElementById('map-state-select');
+  sel.value = 'US';
+  renderSVGMap('US');
+}
+
+function openStateMap(state) {
+  currentMapState = state;
+  document.getElementById('map-modal-title').textContent = '🗺 ' + state;
+  document.getElementById('map-modal').classList.add('open');
+  const sel = document.getElementById('map-state-select');
+  sel.value = state;
+  renderSVGMap(state);
+}
+
+function changeMapState(val) {
+  currentMapState = val;
+  if (val === 'US') {
+    document.getElementById('map-modal-title').textContent = '🗺 United States — All Parks';
+  } else {
+    document.getElementById('map-modal-title').textContent = '🗺 ' + val;
+  }
+  renderSVGMap(val);
+}
+
+function closeMapModal() {
+  document.getElementById('map-modal').classList.remove('open');
+}
+
+function getMarkerKey(parkId, mapKey) {
+  return parkId + '___' + mapKey;
+}
+
+function renderSVGMap(mapKey) {
+  const container = document.getElementById('svg-map-container');
+  const W = container.clientWidth || 800;
+  const H = Math.max(420, Math.round(W * 0.6));
+
+  let parksToShow = [];
+  let title = '';
+  let bgPath = '';
+  let vb = `0 0 ${W} ${H}`;
+
+  if (mapKey === 'US') {
+    parksToShow = parks.filter(p => PARK_COORDS[p.name]);
+    title = 'Continental United States';
+    // Draw a simple US outline using approximate state blocks
+    bgPath = drawUSBackground(W, H);
+  } else {
+    parksToShow = parks.filter(p => p.state === mapKey && PARK_COORDS[p.name]);
+    title = mapKey;
+    bgPath = drawStateBackground(mapKey, W, H);
+  }
+
+  const markerSVG = parksToShow.map(p => {
+    const key = getMarkerKey(p.id, mapKey);
+    let cx, cy;
+    if (markerPositions[key]) {
+      cx = markerPositions[key].cx;
+      cy = markerPositions[key].cy;
+    } else {
+      const coords = PARK_COORDS[p.name];
+      if (!coords) return '';
+      if (mapKey === 'US') {
+        [cx, cy] = latLonToUS(coords[0], coords[1]);
+        // Scale to current W/H (base was 960x600)
+        cx = cx * W / 960;
+        cy = cy * H / 600;
+      } else {
+        [cx, cy] = latLonToState(coords[0], coords[1], mapKey);
+        cx = cx * W / 780;
+        cy = cy * H / 520;
+      }
+    }
+    const color = p.visited ? '#4a7c59' : '#9ca3af';
+    const stroke = p.visited ? '#1a3a2a' : '#6b7280';
+    const r = mapKey === 'US' ? 5 : 7;
+    const escapedName = p.name.replace(/'/g, "\'").replace(/"/g, '&quot;');
+    return `<circle 
+      class="park-marker" 
+      data-id="${p.id}" 
+      data-map="${mapKey}"
+      data-name="${escapedName}"
+      cx="${cx.toFixed(1)}" 
+      cy="${cy.toFixed(1)}" 
+      r="${r}" 
+      fill="${color}" 
+      stroke="${stroke}" 
+      stroke-width="1.2"
+      opacity="0.85"
+      style="cursor:grab;"
+    />`;
+  }).join('\n');
+
+  const svg = `<svg id="park-map-svg" width="${W}" height="${H}" viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+    <defs>
+      <style>
+        .park-marker:hover { r: ${mapKey === 'US' ? 7 : 9}; opacity: 1; }
+        .map-label { font-family: 'DM Sans', sans-serif; user-select: none; pointer-events: none; }
+      </style>
+    </defs>
+    ${bgPath}
+    ${markerSVG}
+    <text x="${W/2}" y="${H-10}" text-anchor="middle" class="map-label" font-size="11" fill="#9ca3af">${parksToShow.length} parks shown • ${parksToShow.filter(p=>p.visited).length} visited</text>
+  </svg>`;
+
+  container.innerHTML = svg;
+
+  // Attach drag + tooltip events
+  const svgEl = container.querySelector('#park-map-svg');
+  attachMarkerEvents(svgEl, mapKey);
+}
+
+function drawUSBackground(W, H) {
+  // Draw simple colored blocks for US states as a heat map
+  const stateData = {};
+  parks.forEach(p => {
+    if (!stateData[p.state]) stateData[p.state] = {total:0, visited:0};
+    stateData[p.state].total++;
+    if (p.visited) stateData[p.state].visited++;
+  });
+
+  // Approximate state positions on US map as rectangles
+  // Using proportional coordinates on 0-W x 0-H grid
+  // [state, relX, relY, relW, relH]
+  const stateRects = [
+    ["Washington", 0.05, 0.05, 0.09, 0.08],
+    ["Oregon", 0.05, 0.13, 0.09, 0.1],
+    ["California", 0.04, 0.23, 0.09, 0.2],
+    ["Nevada", 0.1, 0.18, 0.07, 0.15],
+    ["Idaho", 0.14, 0.05, 0.07, 0.14],
+    ["Montana", 0.18, 0.03, 0.12, 0.1],
+    ["Wyoming", 0.21, 0.13, 0.1, 0.1],
+    ["Utah", 0.17, 0.23, 0.07, 0.12],
+    ["Colorado", 0.25, 0.22, 0.1, 0.1],
+    ["Arizona", 0.16, 0.35, 0.09, 0.14],
+    ["New Mexico", 0.25, 0.35, 0.09, 0.14],
+    ["North Dakota", 0.36, 0.05, 0.09, 0.09],
+    ["South Dakota", 0.36, 0.14, 0.09, 0.09],
+    ["Nebraska", 0.37, 0.23, 0.1, 0.08],
+    ["Kansas", 0.38, 0.31, 0.1, 0.08],
+    ["Oklahoma", 0.38, 0.39, 0.11, 0.08],
+    ["Texas", 0.36, 0.47, 0.14, 0.2],
+    ["Minnesota", 0.46, 0.04, 0.09, 0.13],
+    ["Iowa", 0.47, 0.17, 0.09, 0.1],
+    ["Missouri", 0.47, 0.27, 0.09, 0.1],
+    ["Arkansas", 0.47, 0.37, 0.09, 0.09],
+    ["Louisiana", 0.47, 0.46, 0.09, 0.1],
+    ["Wisconsin", 0.54, 0.06, 0.08, 0.11],
+    ["Michigan", 0.58, 0.04, 0.09, 0.12],
+    ["Illinois", 0.54, 0.17, 0.07, 0.12],
+    ["Indiana", 0.59, 0.18, 0.06, 0.1],
+    ["Ohio", 0.64, 0.17, 0.07, 0.1],
+    ["Kentucky", 0.59, 0.28, 0.09, 0.07],
+    ["Tennessee", 0.56, 0.35, 0.1, 0.07],
+    ["Mississippi", 0.55, 0.42, 0.06, 0.1],
+    ["Alabama", 0.61, 0.42, 0.06, 0.1],
+    ["Georgia", 0.66, 0.4, 0.07, 0.12],
+    ["Florida", 0.66, 0.52, 0.1, 0.15],
+    ["South Carolina", 0.71, 0.34, 0.06, 0.07],
+    ["North Carolina", 0.66, 0.3, 0.1, 0.07],
+    ["Virginia", 0.67, 0.23, 0.09, 0.08],
+    ["West Virginia", 0.66, 0.22, 0.06, 0.06],
+    ["Pennsylvania", 0.7, 0.15, 0.08, 0.07],
+    ["New York", 0.76, 0.1, 0.09, 0.08],
+    ["New Jersey", 0.78, 0.18, 0.03, 0.05],
+    ["Delaware", 0.79, 0.22, 0.02, 0.04],
+    ["Maryland", 0.74, 0.22, 0.06, 0.04],
+    ["Connecticut", 0.82, 0.14, 0.03, 0.03],
+    ["Rhode Island", 0.85, 0.14, 0.02, 0.03],
+    ["Massachusetts", 0.82, 0.1, 0.07, 0.04],
+    ["Vermont", 0.8, 0.06, 0.03, 0.05],
+    ["New Hampshire", 0.83, 0.06, 0.03, 0.05],
+    ["Maine", 0.85, 0.02, 0.05, 0.08],
+    ["District of Columbia", 0.76, 0.22, 0.02, 0.02],
+  ];
+
+  return stateRects.map(([state, rx, ry, rw, rh]) => {
+    const d = stateData[state];
+    let fill = '#dde5ee';
+    let label_fill = '#9aacbb';
+    if (d && d.visited > 0 && d.visited < d.total) { fill = '#c8ddc2'; label_fill = '#4a7c59'; }
+    if (d && d.visited === d.total && d.total > 0) { fill = '#a8d5b0'; label_fill = '#1a3a2a'; }
+    const x = rx * W, y = ry * H, w = rw * W, h = rh * H;
+    const abbr = state.length > 10 ? state.substring(0,2).toUpperCase() : state.substring(0,2).toUpperCase();
+    const showLabel = w > 25 && h > 15;
+    return `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" rx="3" fill="${fill}" stroke="#b0bec5" stroke-width="0.8"/>
+    ${showLabel ? `<text x="${(x+w/2).toFixed(0)}" y="${(y+h/2+4).toFixed(0)}" text-anchor="middle" class="map-label" font-size="${Math.min(11, h*0.5).toFixed(0)}" fill="${label_fill}" font-weight="500">${abbr}</text>` : ''}`;
+  }).join('\n');
+}
+
+function drawStateBackground(state, W, H) {
+  // Simple labeled rectangle for state background
+  const d = {};
+  parks.filter(p => p.state === state).forEach(p => {
+    if (!d.total) d.total = 0;
+    if (!d.visited) d.visited = 0;
+    d.total++;
+    if (p.visited) d.visited++;
+  });
+  const pad = 30;
+  return `<rect x="${pad}" y="${pad}" width="${W-pad*2}" height="${H-pad*2}" rx="8" fill="#e8f0f8" stroke="#b0c4d8" stroke-width="1.5"/>
+  <text x="${W/2}" y="${pad+24}" text-anchor="middle" class="map-label" font-size="18" fill="#1a3a2a" font-weight="700">${state}</text>
+  <text x="${W/2}" y="${pad+42}" text-anchor="middle" class="map-label" font-size="12" fill="#6b7280">${d.visited||0} of ${d.total||0} parks visited</text>`;
+}
+
+function attachMarkerEvents(svgEl, mapKey) {
+  if (!svgEl) return;
+  const tooltip = document.getElementById('map-tooltip');
+  let dragging = null;
+  let startX, startY, startCX, startCY;
+
+  svgEl.querySelectorAll('.park-marker').forEach(circle => {
+    // Tooltip
+    circle.addEventListener('mouseenter', function(e) {
+      tooltip.textContent = this.getAttribute('data-name');
+      tooltip.style.display = 'block';
+    });
+    circle.addEventListener('mousemove', function(e) {
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top = (e.clientY - 28) + 'px';
+    });
+    circle.addEventListener('mouseleave', function() {
+      tooltip.style.display = 'none';
+    });
+
+    // Drag
+    circle.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      dragging = this;
+      startX = e.clientX;
+      startY = e.clientY;
+      startCX = parseFloat(this.getAttribute('cx'));
+      startCY = parseFloat(this.getAttribute('cy'));
+      this.style.cursor = 'grabbing';
+    });
+
+    // Touch support
+    circle.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      dragging = this;
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      startCX = parseFloat(this.getAttribute('cx'));
+      startCY = parseFloat(this.getAttribute('cy'));
+    }, {passive:false});
+  });
+
+  svgEl.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const rect = svgEl.getBoundingClientRect();
+    const scaleX = svgEl.viewBox.baseVal.width / rect.width;
+    const scaleY = svgEl.viewBox.baseVal.height / rect.height;
+    const dx = (e.clientX - startX) * scaleX;
+    const dy = (e.clientY - startY) * scaleY;
+    const newCX = Math.max(5, Math.min(svgEl.viewBox.baseVal.width - 5, startCX + dx));
+    const newCY = Math.max(5, Math.min(svgEl.viewBox.baseVal.height - 5, startCY + dy));
+    dragging.setAttribute('cx', newCX.toFixed(1));
+    dragging.setAttribute('cy', newCY.toFixed(1));
+  });
+
+  svgEl.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = svgEl.getBoundingClientRect();
+    const scaleX = svgEl.viewBox.baseVal.width / rect.width;
+    const scaleY = svgEl.viewBox.baseVal.height / rect.height;
+    const dx = (t.clientX - startX) * scaleX;
+    const dy = (t.clientY - startY) * scaleY;
+    const newCX = Math.max(5, Math.min(svgEl.viewBox.baseVal.width - 5, startCX + dx));
+    const newCY = Math.max(5, Math.min(svgEl.viewBox.baseVal.height - 5, startCY + dy));
+    dragging.setAttribute('cx', newCX.toFixed(1));
+    dragging.setAttribute('cy', newCY.toFixed(1));
+  }, {passive:false});
+
+  function stopDrag() {
+    if (dragging) {
+      const parkId = dragging.getAttribute('data-id');
+      const mk = dragging.getAttribute('data-map');
+      const key = getMarkerKey(parkId, mk);
+      markerPositions[key] = {
+        cx: parseFloat(dragging.getAttribute('cx')),
+        cy: parseFloat(dragging.getAttribute('cy'))
+      };
+      dragging.style.cursor = 'grab';
+      dragging = null;
+      saveData();
+    }
+  }
+
+  svgEl.addEventListener('mouseup', stopDrag);
+  svgEl.addEventListener('mouseleave', stopDrag);
+  svgEl.addEventListener('touchend', stopDrag);
+}
+
+function resetMarkerPositions() {
+  if (!confirm('Reset all marker positions to defaults?')) return;
+  markerPositions = {};
+  saveData();
+  renderSVGMap(currentMapState);
+  toast('Marker positions reset', 'success');
+}
+
+function downloadMapAsSVG() {
+  const svg = document.getElementById('park-map-svg');
+  if (!svg) return;
+  const serializer = new XMLSerializer();
+  let svgStr = serializer.serializeToString(svg);
+  // Add XML declaration and standalone styles
+  svgStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgStr;
+  download('nps_map_' + currentMapState.replace(/\s+/g, '_') + '.svg', svgStr, 'image/svg+xml');
+  toast('Map downloaded as SVG!', 'success');
+}
+
+// ========== POPULATE MAP STATE SELECT ==========
+function populateMapStateSelect() {
+  const sel = document.getElementById('map-state-select');
+  sel.innerHTML = '<option value="US">🇺🇸 United States</option>';
+  const states = [...new Set(parks.filter(p => p.state).map(p => p.state))].sort();
+  states.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    sel.appendChild(opt);
+  });
+}
+
 // ========== DOWNLOAD ==========
 function openDownload() {
   setView('map');
@@ -1665,9 +2340,11 @@ function openDownload() {
   const visited = parks.filter(p => p.visited);
   const total = parks.length;
   const opts = [
+    {icon:'💾', label:'Export as JSON (Full Backup)', fn:'exportJSON()'},
     {icon:'📄', label:'Export All Parks (CSV)', fn:'exportCSV("all")'},
     {icon:'✅', label:`Export Visited Parks (CSV) — ${visited.length} parks`, fn:'exportCSV("visited")'},
     {icon:'📋', label:'Export as Text Summary', fn:'exportText()'},
+    {icon:'⬆', label:'Import JSON Backup', fn:'triggerImportJSON()'},
     {icon:'🖨', label:'Print Tracker', fn:'window.print()'},
   ];
   document.getElementById('dl-options').innerHTML = opts.map(o =>
