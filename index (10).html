@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dirt Wear Co. — Our Park Journey</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-dirt">DIRT</span><span class="brand-wear">WEAR</span>
+        <span class="brand-sub">Co.</span>
+      </div>
+      <nav class="site-nav">
+        <a href="#" class="nav-link">Shop</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="#" class="nav-link active">Our Journey</a>
+        <a href="#" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-text">
+      <p class="hero-eyebrow">Sea to Sea</p>
+      <h1 class="hero-title">Our Park Journey</h1>
+      <p class="hero-desc">80,000+ miles. 80+ parks, monuments & historic sites. Every red dot is a memory — and we're not done yet.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-pill" id="stat-visited">
+        <span class="stat-num">0</span>
+        <span class="stat-lbl">Visited</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-num" id="stat-total">—</span>
+        <span class="stat-lbl">Total NPS Sites</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-num">80k+</span>
+        <span class="stat-lbl">Miles Traveled</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <div class="controls-bar">
+    <div class="controls-left">
+      <select id="type-filter" class="ctrl-select">
+        <option value="all">All Designations</option>
+      </select>
+      <select id="state-filter" class="ctrl-select">
+        <option value="all">All States</option>
+      </select>
+      <input type="text" id="search-box" class="ctrl-input" placeholder="Search by name..." />
+    </div>
+    <div class="controls-right">
+      <button class="ctrl-btn" onclick="resetAll()">Reset All</button>
+      <button class="ctrl-btn primary" onclick="openAddModal()">+ Add Site</button>
+      <button class="ctrl-btn accent" onclick="downloadMap()">&#8681; Download Map</button>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-wrap">
+    <div id="loading-msg" class="loading-msg">Loading all NPS sites from official database...</div>
+    <div id="hover-label" class="hover-label" style="display:none;"></div>
+    <div id="map"></div>
+  </div>
+
+  <!-- VISITED LIST -->
+  <section class="visited-section" id="visited-section" style="display:none;">
+    <div class="visited-header">
+      <h2 class="visited-title">Places We've Been</h2>
+      <button class="ctrl-btn small" onclick="toggleVisitedList()">Hide List</button>
+    </div>
+    <div id="visited-grid" class="visited-grid"></div>
+  </section>
+
+  <!-- STATE PANEL (slide-in) -->
+  <div id="state-panel" class="state-panel">
+    <div class="state-panel-inner">
+      <div class="state-panel-header">
+        <h3 id="state-panel-title">State Sites</h3>
+        <button class="panel-close" onclick="closeStatePanel()">✕</button>
+      </div>
+      <div class="state-panel-stats">
+        <span id="state-vis-count">0 visited</span> of <span id="state-tot-count">0 total</span>
+      </div>
+      <div id="state-site-list" class="state-site-list"></div>
+    </div>
+  </div>
+  <div id="panel-overlay" class="panel-overlay" onclick="closeStatePanel()"></div>
+
+  <!-- ADD SITE MODAL -->
+  <div id="add-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Add a Custom Site</h3>
+        <button class="panel-close" onclick="closeAddModal()">✕</button>
+      </div>
+      <p class="modal-desc">Can't find a site on the map? Add it manually below.</p>
+      <div class="modal-form">
+        <label class="form-label">Site Name *
+          <input type="text" id="add-name" class="form-input" placeholder="e.g. Timpanogos Cave National Monument" />
+        </label>
+        <label class="form-label">Designation
+          <input type="text" id="add-designation" class="form-input" placeholder="e.g. National Monument" />
+        </label>
+        <label class="form-label">State(s)
+          <input type="text" id="add-states" class="form-input" placeholder="e.g. UT" />
+        </label>
+        <div class="form-row">
+          <label class="form-label">Latitude *
+            <input type="number" id="add-lat" class="form-input" placeholder="e.g. 40.44" step="0.0001" />
+          </label>
+          <label class="form-label">Longitude *
+            <input type="number" id="add-lng" class="form-input" placeholder="e.g. -111.71" step="0.0001" />
+          </label>
+        </div>
+        <label class="form-label" style="flex-direction:row;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="add-visited" /> Mark as visited immediately
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="ctrl-btn" onclick="closeAddModal()">Cancel</button>
+        <button class="ctrl-btn primary" onclick="addCustomSite()">Add to Map</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">Dirt Wear Co. — Uintah Basin, Utah</div>
+      <div class="footer-copy">Women-founded · Family-run · Handmade with Utah red clay</div>
+      <a href="#" class="footer-shop">Shop the Collection →</a>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
