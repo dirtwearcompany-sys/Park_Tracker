@@ -950,8 +950,14 @@
         <button class="modal-close" onclick="closeMapModal()">×</button>
       </div>
     </div>
-    <div style="padding:8px 16px;flex-shrink:0;background:rgba(26,58,42,0.04);border-bottom:1px solid rgba(26,58,42,0.08);">
-      <p style="font-size:12px;color:var(--stone);margin:0;">🔴 Visited &nbsp;🩷 Not visited &nbsp;· Drag markers to reposition · Hover for park name</p>
+    <div style="padding:8px 16px;flex-shrink:0;background:rgba(26,58,42,0.04);border-bottom:1px solid rgba(26,58,42,0.08);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <p style="font-size:12px;color:var(--stone);margin:0;">🔴 Visited &nbsp;🩷 Not visited &nbsp;· Scroll to zoom · Drag map to pan · Drag markers to reposition</p>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <span style="font-size:11px;color:var(--stone);margin-right:4px;font-weight:600;">Show:</span>
+        <button id="filter-all" onclick="setMapFilter('all')" style="padding:4px 10px;font-size:11px;font-family:'DM Sans',sans-serif;border-radius:20px;border:1.5px solid #4a7c59;background:#4a7c59;color:white;cursor:pointer;font-weight:600;transition:all 0.15s;">All</button>
+        <button id="filter-visited" onclick="setMapFilter('visited')" style="padding:4px 10px;font-size:11px;font-family:'DM Sans',sans-serif;border-radius:20px;border:1.5px solid #ccc;background:white;color:#555;cursor:pointer;font-weight:600;transition:all 0.15s;">✅ Visited</button>
+        <button id="filter-unvisited" onclick="setMapFilter('unvisited')" style="padding:4px 10px;font-size:11px;font-family:'DM Sans',sans-serif;border-radius:20px;border:1.5px solid #ccc;background:white;color:#555;cursor:pointer;font-weight:600;transition:all 0.15s;">🩷 Not Visited</button>
+      </div>
     </div>
     <div class="modal-body" style="padding:12px;flex:1;overflow:hidden;">
       <div id="svg-map-container" style="width:100%;height:100%;min-height:380px;background:#eef2f7;border-radius:8px;border:1px solid rgba(26,58,42,0.1);overflow:hidden;position:relative;cursor:default;">
@@ -2003,19 +2009,24 @@ const STATE_PATHS = {};
 
 function openUSMap() {
   currentMapState = 'US';
+  mapFilter = 'all';
   document.getElementById('map-modal-title').textContent = '🗺 United States — All Parks';
   document.getElementById('map-modal').classList.add('open');
   const sel = document.getElementById('map-state-select');
   sel.value = 'US';
+  // reset filter button styles
+  setTimeout(() => setMapFilter('all'), 0);
   renderSVGMap('US');
 }
 
 function openStateMap(state) {
   currentMapState = state;
+  mapFilter = 'all';
   document.getElementById('map-modal-title').textContent = '🗺 ' + state;
   document.getElementById('map-modal').classList.add('open');
   const sel = document.getElementById('map-state-select');
   sel.value = state;
+  setTimeout(() => setMapFilter('all'), 0);
   renderSVGMap(state);
 }
 
@@ -2042,6 +2053,26 @@ let mapZoom = 1;
 let mapPanX = 0;
 let mapPanY = 0;
 let _currentMapKey = 'US';
+let mapFilter = 'all'; // 'all' | 'visited' | 'unvisited'
+
+function setMapFilter(f) {
+  mapFilter = f;
+  // Update button styles
+  ['all','visited','unvisited'].forEach(id => {
+    const btn = document.getElementById('filter-' + id);
+    if (!btn) return;
+    if (id === f) {
+      btn.style.background = '#4a7c59';
+      btn.style.borderColor = '#4a7c59';
+      btn.style.color = 'white';
+    } else {
+      btn.style.background = 'white';
+      btn.style.borderColor = '#ccc';
+      btn.style.color = '#555';
+    }
+  });
+  renderSVGMap(_currentMapKey);
+}
 
 function clampPan(zoom, W, H) {
   const maxPanX = Math.max(0, (W * zoom - W) / 2 + W * 0.1);
@@ -2098,6 +2129,10 @@ function renderSVGMap(mapKey) {
     parksToShow = parks.filter(p => p.state === mapKey && PARK_COORDS[p.name]);
     bgPath = drawStateBackground(mapKey, W, H);
   }
+
+  // Apply visited filter
+  if (mapFilter === 'visited')   parksToShow = parksToShow.filter(p => p.visited);
+  if (mapFilter === 'unvisited') parksToShow = parksToShow.filter(p => !p.visited);
 
   const markerSVG = parksToShow.map(p => {
     const key = getMarkerKey(p.id, mapKey);
